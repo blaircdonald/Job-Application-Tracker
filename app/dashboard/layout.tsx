@@ -1,6 +1,8 @@
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { DashboardShell } from "@/components/dashboard/dashboard-shell"
+import { OnboardingGate } from "@/components/onboarding/onboarding-gate"
+import { getProfileOnboardingStatus } from "@/lib/profile/queries"
 import { createClient } from "@/lib/supabase/server"
 
 export const metadata = {
@@ -24,8 +26,14 @@ export default async function DashboardLayout({
     redirect("/sign-in?redirectTo=/dashboard")
   }
 
+  const onboardingCompleted = await getProfileOnboardingStatus(claims.sub)
+
   const cookieStore = await cookies()
   const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false"
 
-  return <DashboardShell defaultOpen={defaultOpen}>{children}</DashboardShell>
+  return (
+    <OnboardingGate needsOnboarding={!onboardingCompleted}>
+      <DashboardShell defaultOpen={defaultOpen}>{children}</DashboardShell>
+    </OnboardingGate>
+  )
 }
