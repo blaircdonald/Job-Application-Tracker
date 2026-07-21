@@ -100,6 +100,37 @@ export type FullProfile = {
   links: ProfileLink[]
 }
 
+export type JobPlatform =
+  | "greenhouse"
+  | "lever"
+  | "workable"
+  | "wellfound"
+  | "linkedin"
+  | "indeed"
+
+export type Job = {
+  id: string
+  user_id: string
+  platform: JobPlatform
+  title: string
+  company: string | null
+  company_logo: string | null
+  location: string | null
+  salary: string | null
+  job_type: string | null
+  experience_level: string | null
+  description: string | null
+  tags: string[]
+  match_score: number
+  job_url: string
+  source_url: string | null
+  applied_status: boolean
+  saved_status: boolean
+  posted_at: string | null
+  fetched_at: string
+  created_at: string
+}
+
 export type ProfileFormData = {
   fullName: string
   email: string
