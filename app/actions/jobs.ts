@@ -1,0 +1,90 @@
+"use server"
+
+import { revalidatePath } from "next/cache"
+
+import {
+  fetchAndCacheJobs,
+  updateJobSavedStatus,
+} from "@/lib/jobs/queries"
+import { fullProfileToFormData } from "@/lib/profile/save-parsed-data"
+import { getFullProfile } from "@/lib/profile/queries"
+import type { JobPlatform } from "@/lib/types/database"
+import { createClient } from "@/lib/supabase/server"
+
+export type FetchJobsResult =
+  | {
+      success: true
+      jobs: Awaited<ReturnType<typeof fetchAndCacheJobs>>["jobs"]
+      fromCache: boolean
+      fetchedAt: string | null
+    }
+  | { success: false; error: string }
+
+export async function fetchJobs(
+  platforms: JobPlatform[],
+  forceRefresh = false
+): Promise<FetchJobsResult> {
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getClaims()
+  const userId = data?.claims?.sub
+
+  if (!userId) {
+    return { success: false, error: "You must be signed in." }
+  }
+
+  const fullProfile = await getFullProfile(userId)
+  if (!fullProfile) {
+    return { success: false, error: "Complete your profile to search for jobs." }
+  }
+
+  const profileData = fullProfileToFormData(fullProfile)
+
+  try {
+    const result = await fetchAndCacheJobs(
+      userId,
+      profileData,
+      platforms,
+      forceRefresh
+    )
+
+    revalidatePath("/dashboard/jobs")
+
+    return {
+      success: true,
+      jobs: result.jobs,
+      fromCache: result.fromCache,
+      fetchedAt: result.fetchedAt,
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch jobs."
+    return { success: false, error: message }
+  }
+}
+
+export type ToggleSaveJobResult =
+  | { success: true; saved: boolean }
+  | { success: false; error: string }
+
+export async function toggleSaveJob(
+  jobId: string,
+  saved: boolean
+): Promise<ToggleSaveJobResult> {
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getClaims()
+  const userId = data?.claims?.sub
+
+  if (!userId) {
+    return { success: false, error: "You must be signed in." }
+  }
+
+  try {
+    await updateJobSavedStatus(userId, jobId, saved)
+    revalidatePath("/dashboard/jobs")
+    return { success: true, saved }
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to update saved status."
+    return { success: false, error: message }
+  }
+}
