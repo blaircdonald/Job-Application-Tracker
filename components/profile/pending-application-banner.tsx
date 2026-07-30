@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTransition } from "react"
 import { toast } from "sonner"
@@ -49,7 +50,7 @@ export function PendingApplicationBanner({
           {isPending ? "Continuing..." : "Continue Application"}
         </Button>
         {application.missing_fields.some((field) => field.profileKey === "resume") ? (
-          <Button size="sm" variant="outline" render={<a href="/dashboard/resume" />}>
+          <Button size="sm" variant="outline" render={<Link href="/dashboard/resume" />}>
             Upload Resume
           </Button>
         ) : null}
