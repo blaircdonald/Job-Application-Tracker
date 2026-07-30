@@ -3,6 +3,10 @@ import {
   createAutomationSession,
 } from "@/lib/automation/browserbase"
 import {
+  formatAutomationError,
+  isGeminiQuotaError,
+} from "@/lib/automation/format-error"
+import {
   mapFieldsToProfile,
   profileHasResume,
 } from "@/lib/automation/map-fields"
@@ -17,6 +21,7 @@ import {
   getLatestParsedResume,
 } from "@/lib/applications/resume"
 import { inngest } from "@/lib/inngest/client"
+import { NonRetriableError } from "inngest"
 import { getFullProfileWithClient } from "@/lib/profile/queries"
 import { createAdminClient } from "@/lib/supabase/admin"
 import type { JobPlatform } from "@/lib/types/database"
@@ -63,7 +68,8 @@ export const submitApplication = inngest.createFunction(
         return mapFieldsToProfile(
           application.detected_fields,
           profile,
-          hasResume
+          hasResume,
+          application.application_field_values
         )
       })
 
@@ -114,7 +120,8 @@ export const submitApplication = inngest.createFunction(
           const mapping = mapFieldsToProfile(
             latestApplication.detected_fields,
             profile,
-            hasResume
+            hasResume,
+            latestApplication.application_field_values
           )
 
           let resumeFilePath: string | null = null
@@ -127,6 +134,7 @@ export const submitApplication = inngest.createFunction(
             stagehand: session.stagehand,
             jobUrl,
             profile,
+            detectedFields: latestApplication.detected_fields,
             mappedFields: mapping.mapped,
             resumeFilePath,
           })
@@ -146,8 +154,7 @@ export const submitApplication = inngest.createFunction(
 
       return { status: "submitted" as const }
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Application submission failed"
+      const message = formatAutomationError(error)
 
       await step.run("mark-submit-failed", async () => {
         await updateApplicationStatus(supabase, applicationId, {
@@ -155,6 +162,10 @@ export const submitApplication = inngest.createFunction(
           error_message: message,
         })
       })
+
+      if (isGeminiQuotaError(error)) {
+        throw new NonRetriableError(message)
+      }
 
       throw error
     }

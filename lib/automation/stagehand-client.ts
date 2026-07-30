@@ -2,6 +2,8 @@ import "server-only"
 
 import { Stagehand } from "@browserbasehq/stagehand"
 
+import { getStagehandModel } from "@/lib/automation/format-error"
+
 export function createStagehandConfig(sessionId?: string) {
   const apiKey = process.env.BROWSERBASE_API_KEY
   const projectId = process.env.BROWSERBASE_PROJECT_ID
@@ -20,7 +22,7 @@ export function createStagehandConfig(sessionId?: string) {
     apiKey,
     projectId,
     model: {
-      modelName: "google/gemini-2.0-flash",
+      modelName: getStagehandModel(),
       apiKey: modelApiKey,
     },
     verbose: 1 as const,

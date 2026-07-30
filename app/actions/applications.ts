@@ -5,12 +5,22 @@ import { revalidatePath } from "next/cache"
 import {
   createJobApplication,
   getApplicationForJob,
+  getApplicationWithJob,
   isActiveApplicationStatus,
   updateApplicationStatus,
 } from "@/lib/applications/queries"
+import {
+  buildApplicationFieldValues,
+  getFillableMissingFields,
+} from "@/lib/applications/missing-fields-utils"
+import {
+  patchProfileFromMissingFields,
+  recheckApplicationMapping,
+} from "@/lib/applications/save-missing-fields"
 import { resolveApplicationPlatform } from "@/lib/automation/detect-platform"
 import { isAutoApplySupported } from "@/lib/automation/detect-platform"
-import { inngest } from "@/lib/inngest/client"
+import { sendApplicationEvent } from "@/lib/inngest/send-event"
+import { getFullProfileWithClient } from "@/lib/profile/queries"
 import { createClient } from "@/lib/supabase/server"
 import type { ApplicationStatus, JobApplication, JobPlatform } from "@/lib/types/database"
 
@@ -69,7 +79,7 @@ export async function startAutoApply(jobId: string): Promise<StartAutoApplyResul
       existing ??
       (await createJobApplication(supabase, userId, jobId))
 
-    await inngest.send({
+    await sendApplicationEvent({
       name: "app/application.detect-fields",
       data: {
         applicationId: application.id,
@@ -170,7 +180,7 @@ export async function retryApplication(
         error_message: null,
       })
 
-      await inngest.send({
+      await sendApplicationEvent({
         name: "app/application.detect-fields",
         data: {
           applicationId,
@@ -184,7 +194,7 @@ export async function retryApplication(
       application.status === "missing_profile_info" ||
       application.status === "ready_to_submit"
     ) {
-      await inngest.send({
+      await sendApplicationEvent({
         name: "app/application.submit",
         data: {
           applicationId,
@@ -207,6 +217,112 @@ export async function retryApplication(
       retryError instanceof Error
         ? retryError.message
         : "Failed to retry application."
+    return { success: false, error: message }
+  }
+}
+
+export type SaveMissingApplicationFieldsResult =
+  | { success: true; status: ApplicationStatus; stillMissing: boolean }
+  | { success: false; error: string }
+
+export async function saveMissingApplicationFields(
+  applicationId: string,
+  values: Record<string, string>
+): Promise<SaveMissingApplicationFieldsResult> {
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getClaims()
+  const userId = data?.claims?.sub
+
+  if (!userId) {
+    return { success: false, error: "You must be signed in." }
+  }
+
+  const application = await getApplicationWithJob(supabase, applicationId)
+  if (!application || application.user_id !== userId) {
+    return { success: false, error: "Application not found." }
+  }
+
+  if (application.status !== "missing_profile_info") {
+    return {
+      success: false,
+      error: "Application is not waiting for missing profile info.",
+    }
+  }
+
+  const fillableFields = getFillableMissingFields(application.missing_fields)
+  const unfilled = fillableFields.filter((field) => !values[field.fieldId]?.trim())
+  if (unfilled.length > 0) {
+    return { success: false, error: "Please fill in all required fields." }
+  }
+
+  try {
+    const fullProfile = await getFullProfileWithClient(supabase, userId)
+    if (!fullProfile) {
+      return { success: false, error: "Profile not found." }
+    }
+
+    await patchProfileFromMissingFields(
+      supabase,
+      userId,
+      fullProfile,
+      application.missing_fields,
+      values
+    )
+
+    const applicationFieldValues = buildApplicationFieldValues(
+      application.application_field_values,
+      application.missing_fields,
+      values
+    )
+
+    const mapping = await recheckApplicationMapping(
+      supabase,
+      userId,
+      application.detected_fields,
+      applicationFieldValues
+    )
+
+    const nextStatus =
+      mapping.missing.length === 0 ? "ready_to_submit" : "missing_profile_info"
+
+    await updateApplicationStatus(supabase, applicationId, {
+      status: nextStatus,
+      missing_fields: mapping.missing,
+      application_field_values: applicationFieldValues,
+    })
+
+    if (nextStatus === "ready_to_submit") {
+      const platform = resolveApplicationPlatform(
+        application.job.job_url,
+        application.job.platform
+      )
+
+      if (platform) {
+        await sendApplicationEvent({
+          name: "app/application.submit",
+          data: {
+            applicationId,
+            userId,
+            jobId: application.job_id,
+            jobUrl: application.job.job_url,
+            platform,
+          },
+        })
+      }
+    }
+
+    revalidatePath("/dashboard/application-status")
+    revalidatePath("/dashboard/profile")
+    revalidatePath("/dashboard/jobs")
+
+    return {
+      success: true,
+      status: nextStatus,
+      stillMissing: mapping.missing.length > 0,
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to save missing fields."
     return { success: false, error: message }
   }
 }

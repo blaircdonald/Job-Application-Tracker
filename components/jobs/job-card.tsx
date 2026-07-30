@@ -188,7 +188,7 @@ export function JobCard({ job, onSavedChange }: JobCardProps) {
               className="h-9 w-full justify-center text-sm"
               onClick={() => setApplyDialogOpen(true)}
             >
-              Open Job URL to Apply
+              Apply
             </Button>
             <ApplyMethodDialog
               job={job}

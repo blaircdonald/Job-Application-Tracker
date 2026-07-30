@@ -153,6 +153,7 @@ export type MissingField = {
   label: string
   profileKey: string
   profileSection: ProfileSectionId
+  fieldType?: DetectedField["type"]
 }
 
 export type ProfileSectionId =
@@ -174,6 +175,7 @@ export type JobApplication = {
   detected_platform: string | null
   detected_fields: DetectedField[]
   missing_fields: MissingField[]
+  application_field_values: Record<string, string>
   browserbase_session_id: string | null
   error_message: string | null
   submitted_at: string | null

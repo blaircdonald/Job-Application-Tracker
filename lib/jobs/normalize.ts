@@ -1,6 +1,7 @@
 import type { JobPlatform } from "@/lib/types/database"
 
 import type { BraveWebResult } from "./brave-search"
+import { isLikelyRemovedJob } from "./filter-removed-jobs"
 import { calculateMatchScore } from "./match-score"
 import { parseJobMetadata } from "./parse-job-metadata"
 import type { JobSearchContext } from "./search-context"
@@ -174,6 +175,11 @@ export function normalizeBraveResults(
     .filter((job) => {
       if (seen.has(job.job_url)) return false
       seen.add(job.job_url)
-      return job.title.length >= 2
+      if (job.title.length < 2) return false
+      return !isLikelyRemovedJob({
+        title: job.title,
+        description: job.description ?? "",
+        url: job.job_url,
+      })
     })
 }

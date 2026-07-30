@@ -1,5 +1,6 @@
 import type { JobPlatform } from "@/lib/types/database"
 
+import { filterActiveJobResults } from "./filter-removed-jobs"
 import { getPlatformConfig, isPlatformJobUrl } from "./platforms"
 import type { JobSearchContext } from "./search-context"
 import { buildPlatformSearchQueries } from "./search-context"
@@ -55,7 +56,7 @@ async function runBraveSearch(
 > {
   const params = new URLSearchParams({
     q: query,
-    freshness: "pw",
+    freshness: "pd",
     count: "20",
     search_lang: "en",
     country: "us",
@@ -122,7 +123,7 @@ export async function searchBraveJobs(
     if (collected.length >= 10) break
   }
 
-  return collected
+  return filterActiveJobResults(collected)
 }
 
 export function getBraveSearchQueryPreview(

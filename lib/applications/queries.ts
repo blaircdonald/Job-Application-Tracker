@@ -17,6 +17,7 @@ type JobApplicationRow = {
   detected_platform: string | null
   detected_fields: DetectedField[] | null
   missing_fields: MissingField[] | null
+  application_field_values: Record<string, string> | null
   browserbase_session_id: string | null
   error_message: string | null
   submitted_at: string | null
@@ -34,6 +35,7 @@ function mapApplication(row: JobApplicationRow): JobApplication {
     detected_platform: row.detected_platform,
     detected_fields: row.detected_fields ?? [],
     missing_fields: row.missing_fields ?? [],
+    application_field_values: row.application_field_values ?? {},
     browserbase_session_id: row.browserbase_session_id,
     error_message: row.error_message,
     submitted_at: row.submitted_at,
@@ -133,6 +135,7 @@ export async function updateApplicationStatus(
       | "detected_platform"
       | "detected_fields"
       | "missing_fields"
+      | "application_field_values"
       | "browserbase_session_id"
       | "error_message"
       | "submitted_at"

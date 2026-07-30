@@ -3,6 +3,10 @@ import {
   createAutomationSession,
 } from "@/lib/automation/browserbase"
 import {
+  formatAutomationError,
+  isGeminiQuotaError,
+} from "@/lib/automation/format-error"
+import {
   mapFieldsToProfile,
   profileHasResume,
 } from "@/lib/automation/map-fields"
@@ -10,6 +14,7 @@ import { getPlatformAdapter } from "@/lib/automation/platforms"
 import { updateApplicationStatus } from "@/lib/applications/queries"
 import { getLatestParsedResume } from "@/lib/applications/resume"
 import { inngest } from "@/lib/inngest/client"
+import { NonRetriableError } from "inngest"
 import { getFullProfileWithClient } from "@/lib/profile/queries"
 import { createAdminClient } from "@/lib/supabase/admin"
 import type { JobPlatform } from "@/lib/types/database"
@@ -50,6 +55,19 @@ export const detectApplicationFields = inngest.createFunction(
         })
 
         return detectedFields
+      } catch (error) {
+        const message = formatAutomationError(error)
+
+        await updateApplicationStatus(supabase, applicationId, {
+          status: "failed",
+          error_message: message,
+        })
+
+        if (isGeminiQuotaError(error)) {
+          throw new NonRetriableError(message)
+        }
+
+        throw error
       } finally {
         await closeAutomationSession(session)
       }
