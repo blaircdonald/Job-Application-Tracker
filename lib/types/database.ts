@@ -131,6 +131,60 @@ export type Job = {
   created_at: string
 }
 
+export type ApplicationStatus =
+  | "queued"
+  | "detecting_fields"
+  | "missing_profile_info"
+  | "ready_to_submit"
+  | "submitting"
+  | "submitted"
+  | "failed"
+
+export type DetectedField = {
+  id: string
+  label: string
+  type: "text" | "email" | "tel" | "file" | "select" | "textarea" | "checkbox" | "unknown"
+  required: boolean
+  selector?: string
+}
+
+export type MissingField = {
+  fieldId: string
+  label: string
+  profileKey: string
+  profileSection: ProfileSectionId
+}
+
+export type ProfileSectionId =
+  | "personal"
+  | "summary"
+  | "skills"
+  | "experience"
+  | "education"
+  | "projects"
+  | "certifications"
+  | "links"
+  | "resume"
+
+export type JobApplication = {
+  id: string
+  user_id: string
+  job_id: string
+  status: ApplicationStatus
+  detected_platform: string | null
+  detected_fields: DetectedField[]
+  missing_fields: MissingField[]
+  browserbase_session_id: string | null
+  error_message: string | null
+  submitted_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type JobApplicationWithJob = JobApplication & {
+  job: Job
+}
+
 export type ProfileFormData = {
   fullName: string
   email: string

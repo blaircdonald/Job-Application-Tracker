@@ -20,6 +20,7 @@ import {
 import type { IconSvgElement } from "@hugeicons/react"
 
 import { updateProfile } from "@/app/actions/profile"
+import { PendingApplicationBanner } from "@/components/profile/pending-application-banner"
 import { ProfileCompletenessCard } from "@/components/profile/profile-completeness-card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -50,10 +51,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import type { ProfileSectionId } from "@/lib/profile/completeness"
 import { getSectionCompleteness } from "@/lib/profile/completeness"
-import type { ProfileFormData } from "@/lib/types/database"
+import type { ProfileFormData, JobApplicationWithJob } from "@/lib/types/database"
 
 type ProfileFormProps = {
   initialData: ProfileFormData
+  pendingApplication?: JobApplicationWithJob | null
+  highlightProfileKeys?: string[]
+}
+
+function highlightInputClass(
+  profileKey: string,
+  highlightProfileKeys?: string[]
+) {
+  const shouldHighlight =
+    highlightProfileKeys?.includes(profileKey) ||
+    (profileKey === "fullName" &&
+      (highlightProfileKeys?.includes("firstName") ||
+        highlightProfileKeys?.includes("lastName")))
+
+  return shouldHighlight
+    ? "border-destructive ring-2 ring-destructive/20"
+    : undefined
 }
 
 type ProfileSection = {
@@ -233,7 +251,11 @@ function CollapsibleEntry({
   )
 }
 
-export function ProfileForm({ initialData }: ProfileFormProps) {
+export function ProfileForm({
+  initialData,
+  pendingApplication = null,
+  highlightProfileKeys = [],
+}: ProfileFormProps) {
   const [form, setForm] = useState<ProfileFormData>(initialData)
   const [skillInput, setSkillInput] = useState("")
   const [activeTab, setActiveTab] = useState<ProfileSectionId>("personal")
@@ -284,6 +306,10 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           {isPending ? "Saving..." : "Save profile"}
         </Button>
       </div>
+
+      {pendingApplication ? (
+        <PendingApplicationBanner application={pendingApplication} />
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
@@ -347,6 +373,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                           <Input
                             id="fullName"
                             value={form.fullName}
+                            className={highlightInputClass("fullName", highlightProfileKeys)}
                             onChange={(e) => updateField("fullName", e.target.value)}
                           />
                         </Field>
@@ -356,6 +383,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                             id="email"
                             type="email"
                             value={form.email}
+                            className={highlightInputClass("email", highlightProfileKeys)}
                             onChange={(e) => updateField("email", e.target.value)}
                           />
                         </Field>
@@ -364,6 +392,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                           <Input
                             id="phone"
                             value={form.phone}
+                            className={highlightInputClass("phone", highlightProfileKeys)}
                             onChange={(e) => updateField("phone", e.target.value)}
                           />
                         </Field>
@@ -372,6 +401,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                           <Input
                             id="location"
                             value={form.location}
+                            className={highlightInputClass("location", highlightProfileKeys)}
                             onChange={(e) => updateField("location", e.target.value)}
                           />
                         </Field>
@@ -380,6 +410,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                           <Input
                             id="linkedinUrl"
                             value={form.linkedinUrl}
+                            className={highlightInputClass("linkedinUrl", highlightProfileKeys)}
                             onChange={(e) => updateField("linkedinUrl", e.target.value)}
                           />
                         </Field>
@@ -388,6 +419,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                           <Input
                             id="githubUrl"
                             value={form.githubUrl}
+                            className={highlightInputClass("githubUrl", highlightProfileKeys)}
                             onChange={(e) => updateField("githubUrl", e.target.value)}
                           />
                         </Field>
@@ -396,6 +428,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                           <Input
                             id="websiteUrl"
                             value={form.websiteUrl}
+                            className={highlightInputClass("websiteUrl", highlightProfileKeys)}
                             onChange={(e) => updateField("websiteUrl", e.target.value)}
                           />
                         </Field>
@@ -417,6 +450,10 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                     <Textarea
                       rows={6}
                       value={form.professionalSummary}
+                      className={highlightInputClass(
+                        "professionalSummary",
+                        highlightProfileKeys
+                      )}
                       onChange={(e) =>
                         updateField("professionalSummary", e.target.value)
                       }

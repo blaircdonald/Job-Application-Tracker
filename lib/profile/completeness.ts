@@ -1,14 +1,6 @@
-import type { ProfileFormData } from "@/lib/types/database"
+import type { ProfileFormData, ProfileSectionId } from "@/lib/types/database"
 
-export type ProfileSectionId =
-  | "personal"
-  | "summary"
-  | "skills"
-  | "experience"
-  | "education"
-  | "projects"
-  | "certifications"
-  | "links"
+export type { ProfileSectionId }
 
 export type SectionCompleteness = {
   id: ProfileSectionId

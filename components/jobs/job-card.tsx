@@ -1,20 +1,15 @@
 "use client"
 
-import {
-  Bookmark,
-  Briefcase,
-  DollarSign,
-  Home,
-  MapPin,
-} from "lucide-react"
-import { useTransition } from "react"
+import { Bookmark, Briefcase, DollarSign, Home, MapPin } from "lucide-react"
+import { useState, useTransition } from "react"
 import { toast } from "sonner"
 
 import { toggleSaveJob } from "@/app/actions/jobs"
+import { ApplyMethodDialog } from "@/components/jobs/apply-method-dialog"
 import { PlatformLogo } from "@/components/jobs/platform-logo"
 import { resolveJobDisplay } from "@/lib/jobs/display"
 import { Badge } from "@/components/ui/badge"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import type { Job } from "@/lib/types/database"
 import { cn } from "@/lib/utils"
 
@@ -78,6 +73,7 @@ function MetadataItem({
 
 export function JobCard({ job, onSavedChange }: JobCardProps) {
   const [isPending, startTransition] = useTransition()
+  const [applyDialogOpen, setApplyDialogOpen] = useState(false)
   const match = getMatchMeta(job.match_score)
   const visibleTags = job.tags.slice(0, MAX_VISIBLE_TAGS)
   const hiddenTagCount = job.tags.length - visibleTags.length
@@ -187,16 +183,18 @@ export function JobCard({ job, onSavedChange }: JobCardProps) {
           </div>
 
           <div className="flex w-full shrink-0 flex-col gap-2 sm:w-36">
-            <a
-              href={job.job_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={buttonVariants({
-                className: "h-9 w-full justify-center text-sm",
-              })}
+            <Button
+              type="button"
+              className="h-9 w-full justify-center text-sm"
+              onClick={() => setApplyDialogOpen(true)}
             >
-              Apply Now
-            </a>
+              Open Job URL to Apply
+            </Button>
+            <ApplyMethodDialog
+              job={job}
+              open={applyDialogOpen}
+              onOpenChange={setApplyDialogOpen}
+            />
             <Button
               type="button"
               variant="outline"

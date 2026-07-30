@@ -1,22 +1,12 @@
+import type { SupabaseClient } from "@supabase/supabase-js"
+
 import { createClient } from "@/lib/supabase/server"
 import type { FullProfile, Profile, Resume } from "@/lib/types/database"
 
-export async function getProfileOnboardingStatus(
+export async function getFullProfileWithClient(
+  supabase: SupabaseClient,
   userId: string
-): Promise<boolean> {
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from("profiles")
-    .select("onboarding_completed")
-    .eq("id", userId)
-    .single()
-
-  return data?.onboarding_completed ?? false
-}
-
-export async function getFullProfile(userId: string): Promise<FullProfile | null> {
-  const supabase = await createClient()
-
+): Promise<FullProfile | null> {
   const [
     profileResult,
     skillsResult,
@@ -74,8 +64,28 @@ export async function getFullProfile(userId: string): Promise<FullProfile | null
   }
 }
 
-export async function getUserResumes(userId: string): Promise<Resume[]> {
+export async function getProfileOnboardingStatus(
+  userId: string
+): Promise<boolean> {
   const supabase = await createClient()
+  const { data } = await supabase
+    .from("profiles")
+    .select("onboarding_completed")
+    .eq("id", userId)
+    .single()
+
+  return data?.onboarding_completed ?? false
+}
+
+export async function getFullProfile(userId: string): Promise<FullProfile | null> {
+  const supabase = await createClient()
+  return getFullProfileWithClient(supabase, userId)
+}
+
+export async function getUserResumesWithClient(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<Resume[]> {
   const { data } = await supabase
     .from("resumes")
     .select("*")
@@ -83,4 +93,9 @@ export async function getUserResumes(userId: string): Promise<Resume[]> {
     .order("created_at", { ascending: false })
 
   return (data ?? []) as Resume[]
+}
+
+export async function getUserResumes(userId: string): Promise<Resume[]> {
+  const supabase = await createClient()
+  return getUserResumesWithClient(supabase, userId)
 }
