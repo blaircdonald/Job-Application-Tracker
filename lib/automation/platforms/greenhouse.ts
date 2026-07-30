@@ -4,12 +4,14 @@ import type {
   PlatformAdapterContext,
 } from "@/lib/automation/platforms/types"
 import {
-  extractFormFields,
-  fillMappedFields,
-  navigateToJob,
+  completeApplicationForm,
   submitApplicationForm,
-  uploadResume,
   verifySubmission,
+} from "@/lib/automation/fill-form"
+import {
+  extractFormFields,
+  navigateToJob,
+  uploadResume,
 } from "@/lib/automation/platforms/types"
 
 async function clickApplyButton(stagehand: PlatformAdapterContext["stagehand"]) {
@@ -43,11 +45,26 @@ export async function detectFields(
 export async function fillAndSubmit(input: FillAndSubmitInput) {
   await navigateToJob(input.stagehand, input.jobUrl)
   await clickApplyButton(input.stagehand)
-  await fillMappedFields(input.stagehand, input.mappedFields)
+
+  const mappedFields = { ...input.mappedFields }
+
+  await completeApplicationForm(
+    input.stagehand,
+    input.profile,
+    input.detectedFields,
+    mappedFields
+  )
 
   if (input.resumeFilePath) {
     await uploadResume(input.stagehand, input.resumeFilePath)
   }
+
+  await completeApplicationForm(
+    input.stagehand,
+    input.profile,
+    input.detectedFields,
+    mappedFields
+  )
 
   await submitApplicationForm(input.stagehand)
   await verifySubmission(input.stagehand)

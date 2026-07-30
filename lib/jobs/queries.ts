@@ -107,6 +107,37 @@ function mapJobRow(row: Record<string, unknown>): Job {
   }
 }
 
+async function purgeStaleJobs(
+  userId: string,
+  platforms: JobPlatform[],
+  activeJobUrls: Set<string>
+) {
+  if (platforms.length === 0) return
+
+  const supabase = await createClient()
+  const { data: existingJobs, error: fetchError } = await supabase
+    .from("jobs")
+    .select("id, job_url")
+    .eq("user_id", userId)
+    .in("platform", platforms)
+
+  if (fetchError) throw fetchError
+
+  const staleJobIds = (existingJobs ?? [])
+    .filter((job) => !activeJobUrls.has(job.job_url))
+    .map((job) => job.id)
+
+  if (staleJobIds.length === 0) return
+
+  const { error: deleteError } = await supabase
+    .from("jobs")
+    .delete()
+    .eq("user_id", userId)
+    .in("id", staleJobIds)
+
+  if (deleteError) throw deleteError
+}
+
 async function upsertJobs(
   userId: string,
   jobs: Array<{
@@ -210,6 +241,11 @@ export async function fetchAndCacheJobs(
     context,
     fetchedAt
   )
+
+  if (forceRefresh && normalizedJobs.length > 0) {
+    const activeJobUrls = new Set(normalizedJobs.map((job) => job.job_url))
+    await purgeStaleJobs(userId, platformsToFetch, activeJobUrls)
+  }
 
   const jobs = await getCachedJobs(userId)
 

@@ -14,6 +14,7 @@ export type FillAndSubmitInput = {
   stagehand: StagehandInstance
   jobUrl: string
   profile: FullProfile
+  detectedFields: DetectedField[]
   mappedFields: Record<string, string>
   resumeFilePath: string | null
 }
@@ -22,6 +23,32 @@ export interface PlatformAdapter {
   platform: string
   detectFields(ctx: PlatformAdapterContext): Promise<DetectedField[]>
   fillAndSubmit(input: FillAndSubmitInput): Promise<void>
+}
+
+export async function getActivePage(stagehand: StagehandInstance) {
+  const page =
+    stagehand.context.activePage() ?? stagehand.context.pages()[0]
+
+  if (!page) {
+    throw new Error("No browser page available in Stagehand session")
+  }
+
+  return page
+}
+
+export async function navigateToJob(
+  stagehand: StagehandInstance,
+  jobUrl: string
+) {
+  const page = await getActivePage(stagehand)
+  await page.goto(jobUrl, { waitUntil: "domcontentloaded", timeoutMs: 60000 })
+  try {
+    await stagehand.act(
+      "Dismiss any cookie consent or popup banners if visible. If none exist, do nothing."
+    )
+  } catch {
+    // Cookie banners are optional.
+  }
 }
 
 const detectedFieldsSchema = z.object({
@@ -44,31 +71,15 @@ const detectedFieldsSchema = z.object({
   ),
 })
 
-export async function getActivePage(stagehand: StagehandInstance) {
-  const page =
-    stagehand.context.activePage() ?? stagehand.context.pages()[0]
-
-  if (!page) {
-    throw new Error("No browser page available in Stagehand session")
-  }
-
-  return page
-}
-
-export async function navigateToJob(
-  stagehand: StagehandInstance,
-  jobUrl: string
-) {
-  const page = await getActivePage(stagehand)
-  await page.goto(jobUrl, { waitUntil: "domcontentloaded", timeoutMs: 60000 })
-  await stagehand.act("dismiss any cookie consent or popup banners if visible")
-}
-
 export async function extractFormFields(
   stagehand: StagehandInstance
 ): Promise<DetectedField[]> {
   const result = await stagehand.extract(
-    "Extract all visible form input fields on this job application page. Include labels, field types, and whether each field appears required. Include file upload fields for resume/CV.",
+    [
+      "Extract all visible form fields on this job application page.",
+      "Include text inputs, textareas, dropdowns/selects, radio groups, checkboxes, and file uploads.",
+      "For each field include the visible label/question text, field type, and whether it appears required.",
+    ].join(" "),
     detectedFieldsSchema
   )
 
@@ -80,16 +91,6 @@ export async function extractFormFields(
   }))
 }
 
-export async function fillMappedFields(
-  stagehand: StagehandInstance,
-  mappedFields: Record<string, string>
-) {
-  for (const [fieldId, value] of Object.entries(mappedFields)) {
-    if (!value.trim()) continue
-    await stagehand.act(`Fill the form field "${fieldId}" with the value: ${value}`)
-  }
-}
-
 export async function uploadResume(
   stagehand: StagehandInstance,
   resumeFilePath: string
@@ -97,26 +98,6 @@ export async function uploadResume(
   await stagehand.act(
     `Upload the resume file from local path ${resumeFilePath} to the resume or CV file input field`
   )
-}
-
-export async function submitApplicationForm(stagehand: StagehandInstance) {
-  await stagehand.act(
-    "Click the submit or apply button to submit the job application form. If there is a Next button on a multi-step form, click through all steps until the final submit."
-  )
-}
-
-export async function verifySubmission(stagehand: StagehandInstance) {
-  const result = await stagehand.extract(
-    "Did the job application submit successfully? Look for confirmation messages, thank you pages, or success indicators.",
-    z.object({
-      submitted: z.boolean(),
-      message: z.string().optional(),
-    })
-  )
-
-  if (!result.submitted) {
-    throw new Error(result.message ?? "Application submission could not be verified")
-  }
 }
 
 export type { FieldMappingResult }

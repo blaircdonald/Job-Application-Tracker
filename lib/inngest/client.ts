@@ -30,4 +30,5 @@ export type ApplicationEvents =
 
 export const inngest = new Inngest({
   id: "ai-job-application-agent",
+  eventKey: process.env.INNGEST_EVENT_KEY,
 })

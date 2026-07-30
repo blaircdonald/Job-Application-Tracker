@@ -4,6 +4,11 @@ import type {
   MissingField,
   ProfileSectionId,
 } from "@/lib/types/database"
+import {
+  getUserPromptProfileKey,
+  inferChoiceDefault,
+  isUserPromptField,
+} from "@/lib/automation/field-inference"
 import { fullProfileToFormData } from "@/lib/profile/save-parsed-data"
 
 type FieldPattern = {
@@ -93,7 +98,7 @@ const FIELD_PATTERNS: FieldPattern[] = [
     getValue: () => null,
   },
   {
-    pattern: /company|employer|organization/i,
+    pattern: /current\s*(?:company|employer)|employer\s*name|company\s*name|most\s*recent\s*company/i,
     profileKey: "workExperience",
     profileSection: "experience",
     getValue: (profile) =>
@@ -123,10 +128,25 @@ export type FieldMappingResult = {
   missing: MissingField[]
 }
 
+function buildMissingField(
+  field: DetectedField,
+  profileKey: string,
+  profileSection: ProfileSectionId
+): MissingField {
+  return {
+    fieldId: field.id,
+    label: field.label,
+    profileKey,
+    profileSection,
+    fieldType: field.type,
+  }
+}
+
 export function mapFieldsToProfile(
   detectedFields: DetectedField[],
   profile: FullProfile,
-  hasResume: boolean
+  hasResume: boolean,
+  supplementalFieldValues: Record<string, string> = {}
 ): FieldMappingResult {
   const formData = fullProfileToFormData(profile)
   const mapped: Record<string, string> = {}
@@ -136,28 +156,43 @@ export function mapFieldsToProfile(
   for (const field of detectedFields) {
     if (!field.required) continue
 
+    if (isUserPromptField(field.label)) {
+      const profileKey =
+        getUserPromptProfileKey(field.label) ?? field.id
+      const choiceValue = inferChoiceDefault(
+        field.label,
+        supplementalFieldValues,
+        profileKey,
+        field.id
+      )
+
+      if (choiceValue) {
+        mapped[field.id] = choiceValue
+        continue
+      }
+
+      missing.push(buildMissingField(field, profileKey, "personal"))
+      continue
+    }
+
     const pattern = matchFieldPattern(field.label)
 
     if (field.type === "file" && /resume|cv|curriculum/i.test(field.label)) {
       if (!hasResume) {
-        missing.push({
-          fieldId: field.id,
-          label: field.label,
-          profileKey: "resume",
-          profileSection: "resume",
-        })
+        missing.push(buildMissingField(field, "resume", "resume"))
       }
       continue
     }
 
     if (!pattern) {
       if (field.type !== "file") {
-        missing.push({
-          fieldId: field.id,
-          label: field.label,
-          profileKey: field.id,
-          profileSection: "personal",
-        })
+        const supplemental = supplementalFieldValues[field.id]?.trim()
+        if (supplemental) {
+          mapped[field.id] = supplemental
+          continue
+        }
+
+        missing.push(buildMissingField(field, field.id, "personal"))
       }
       continue
     }
@@ -167,24 +202,27 @@ export function mapFieldsToProfile(
 
     if (pattern.profileKey === "resume") {
       if (!hasResume) {
-        missing.push({
-          fieldId: field.id,
-          label: field.label,
-          profileKey: "resume",
-          profileSection: "resume",
-        })
+        missing.push(buildMissingField(field, "resume", "resume"))
       }
       continue
     }
 
     const value = pattern.getValue(profile, formData)
+    const supplemental = supplementalFieldValues[field.id]?.trim()
+
+    if (supplemental) {
+      mapped[field.id] = supplemental
+      continue
+    }
+
     if (!hasText(value)) {
-      missing.push({
-        fieldId: field.id,
-        label: field.label,
-        profileKey: pattern.profileKey,
-        profileSection: pattern.profileSection,
-      })
+      missing.push(
+        buildMissingField(
+          field,
+          pattern.profileKey,
+          pattern.profileSection
+        )
+      )
       continue
     }
 
