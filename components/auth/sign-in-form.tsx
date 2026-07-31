@@ -6,6 +6,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { GoogleAuthButton } from "@/components/auth/google-auth-button"
+import { DEFAULT_DASHBOARD_PATH } from "@/components/dashboard/nav-config"
 import { Button } from "@/components/ui/button"
 import {
   Field,
@@ -20,7 +21,7 @@ import { Spinner } from "@/components/ui/spinner"
 export function SignInForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get("redirectTo") ?? "/dashboard"
+  const redirectTo = searchParams.get("redirectTo") ?? DEFAULT_DASHBOARD_PATH
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -98,7 +99,7 @@ export function SignInForm() {
       <p className="text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
         <Link
-          href={`/sign-up${redirectTo !== "/dashboard" ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""}`}
+          href={`/sign-up${redirectTo !== DEFAULT_DASHBOARD_PATH ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""}`}
           className="font-medium text-foreground underline-offset-4 hover:underline"
         >
           Create one

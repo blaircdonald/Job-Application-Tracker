@@ -50,9 +50,11 @@ export const footerNavItems: NavItem[] = [
   },
 ]
 
+export const DEFAULT_DASHBOARD_PATH = "/dashboard/jobs"
+
 export const dashboardRoot = {
   title: "Dashboard",
-  href: "/dashboard",
+  href: DEFAULT_DASHBOARD_PATH,
 }
 
 export function getPageTitle(pathname: string): string {

@@ -53,8 +53,14 @@ export async function updateSession(request: NextRequest) {
 
   if (user && isAuthRoute(pathname)) {
     const url = request.nextUrl.clone()
-    url.pathname = "/dashboard"
+    url.pathname = "/dashboard/jobs"
     url.search = ""
+    return NextResponse.redirect(url)
+  }
+
+  if (user && pathname === "/dashboard") {
+    const url = request.nextUrl.clone()
+    url.pathname = "/dashboard/jobs"
     return NextResponse.redirect(url)
   }
 

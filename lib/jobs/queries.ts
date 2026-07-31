@@ -69,6 +69,7 @@ export async function getCachedJobs(
     .from("jobs")
     .select("*")
     .eq("user_id", userId)
+    .eq("applied_status", false)
     .order("match_score", { ascending: false })
 
   if (platforms && platforms.length > 0) {
