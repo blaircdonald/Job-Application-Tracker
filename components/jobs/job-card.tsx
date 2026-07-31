@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils"
 type JobCardProps = {
   job: Job
   onSavedChange?: (jobId: string, saved: boolean) => void
+  onAppliedChange?: (jobId: string) => void
 }
 
 const MAX_VISIBLE_TAGS = 3
@@ -71,7 +72,7 @@ function MetadataItem({
   )
 }
 
-export function JobCard({ job, onSavedChange }: JobCardProps) {
+export function JobCard({ job, onSavedChange, onAppliedChange }: JobCardProps) {
   const [isPending, startTransition] = useTransition()
   const [applyDialogOpen, setApplyDialogOpen] = useState(false)
   const match = getMatchMeta(job.match_score)
@@ -194,6 +195,7 @@ export function JobCard({ job, onSavedChange }: JobCardProps) {
               job={job}
               open={applyDialogOpen}
               onOpenChange={setApplyDialogOpen}
+              onApplied={() => onAppliedChange?.(job.id)}
             />
             <Button
               type="button"

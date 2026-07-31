@@ -9,6 +9,7 @@ import {
   getApplicationForJobAction,
   startAutoApply,
 } from "@/app/actions/applications"
+import { markJobApplied } from "@/app/actions/jobs"
 import { MissingFieldsDialog } from "@/components/applications/missing-fields-dialog"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,6 +29,7 @@ type ApplyMethodDialogProps = {
   job: Job
   open: boolean
   onOpenChange: (open: boolean) => void
+  onApplied?: () => void
 }
 
 function getStatusMessage(status: ApplicationStatus) {
@@ -55,6 +57,7 @@ export function ApplyMethodDialog({
   job,
   open,
   onOpenChange,
+  onApplied,
 }: ApplyMethodDialogProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -81,6 +84,14 @@ export function ApplyMethodDialog({
   function handleManualApply() {
     window.open(job.job_url, "_blank", "noopener,noreferrer")
     onOpenChange(false)
+
+    startTransition(async () => {
+      const result = await markJobApplied(job.id)
+      if (result.success) {
+        onApplied?.()
+        toast.success("Job opened — marked as applied and removed from matches.")
+      }
+    })
   }
 
   function handleAutoApply() {

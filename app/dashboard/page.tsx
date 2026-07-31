@@ -1,9 +1,7 @@
-import { PagePlaceholder } from "@/components/dashboard/page-placeholder"
+import { redirect } from "next/navigation"
 
-export const metadata = {
-  title: "Dashboard",
-}
+import { DEFAULT_DASHBOARD_PATH } from "@/components/dashboard/nav-config"
 
 export default function DashboardPage() {
-  return <PagePlaceholder title="Dashboard" />
+  redirect(DEFAULT_DASHBOARD_PATH)
 }

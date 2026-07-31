@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useState, useTransition } from "react"
-import { RefreshCw } from "lucide-react"
 
 import { fetchJobs } from "@/app/actions/jobs"
 import { JobsEmptyState } from "@/components/jobs/jobs-empty-state"
@@ -14,7 +13,6 @@ import { PlatformCards } from "@/components/jobs/platform-cards"
 import { RecentActivityCard } from "@/components/jobs/recent-activity-card"
 import { WelcomeBanner } from "@/components/jobs/welcome-banner"
 import { ProfileCompletenessCard } from "@/components/profile/profile-completeness-card"
-import { Button } from "@/components/ui/button"
 import { filterJobs } from "@/lib/jobs/filter-jobs"
 import { DEFAULT_PLATFORMS } from "@/lib/jobs/platforms"
 import type { JobSearchContext } from "@/lib/jobs/search-context"
@@ -120,6 +118,25 @@ export function JobsDashboard({
     }
   }
 
+  function handleAppliedChange(jobId: string) {
+    const target = jobs.find((job) => job.id === jobId)
+    setJobs((current) => current.filter((job) => job.id !== jobId))
+
+    if (target) {
+      setActivities((current) =>
+        [
+          {
+            id: `${jobId}-applied-${Date.now()}`,
+            type: "applied" as const,
+            label: `Applied to ${target.title}${target.company ? ` at ${target.company}` : ""}`,
+            timestamp: new Date().toISOString(),
+          },
+          ...current,
+        ].slice(0, 6)
+      )
+    }
+  }
+
   const platformJobs = jobs.filter((job) =>
     selectedPlatforms.includes(job.platform)
   )
@@ -145,18 +162,6 @@ export function JobsDashboard({
             />
           </div>
         </div>
-        <div className="flex justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={isPending}
-            onClick={handleRefresh}
-          >
-            <RefreshCw className={isPending ? "animate-spin" : ""} />
-            Refresh matches
-          </Button>
-        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -178,7 +183,13 @@ export function JobsDashboard({
           {isPending && jobs.length === 0 ? (
             <JobListSkeleton />
           ) : !error && filteredJobs.length > 0 ? (
-            <JobList jobs={filteredJobs} onSavedChange={handleSavedChange} />
+            <JobList
+              jobs={filteredJobs}
+              onSavedChange={handleSavedChange}
+              onAppliedChange={handleAppliedChange}
+              onRefresh={handleRefresh}
+              isRefreshing={isPending}
+            />
           ) : !error && !isPending && hasSearchQuery && platformJobs.length > 0 ? (
             <JobsSearchEmptyState
               query={searchQuery.trim()}

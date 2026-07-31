@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 
+import { markJobAsApplied } from "@/lib/applications/queries"
 import {
   fetchAndCacheJobs,
   updateJobSavedStatus,
@@ -58,6 +59,32 @@ export async function fetchJobs(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to fetch jobs."
+    return { success: false, error: message }
+  }
+}
+
+export type MarkJobAppliedResult =
+  | { success: true }
+  | { success: false; error: string }
+
+export async function markJobApplied(
+  jobId: string
+): Promise<MarkJobAppliedResult> {
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getClaims()
+  const userId = data?.claims?.sub
+
+  if (!userId) {
+    return { success: false, error: "You must be signed in." }
+  }
+
+  try {
+    await markJobAsApplied(supabase, userId, jobId)
+    revalidatePath("/dashboard/jobs")
+    return { success: true }
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to mark job as applied."
     return { success: false, error: message }
   }
 }

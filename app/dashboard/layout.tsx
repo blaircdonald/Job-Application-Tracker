@@ -1,6 +1,7 @@
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { DashboardShell } from "@/components/dashboard/dashboard-shell"
+import { DEFAULT_DASHBOARD_PATH } from "@/components/dashboard/nav-config"
 import { OnboardingGate } from "@/components/onboarding/onboarding-gate"
 import { getProfileOnboardingStatus } from "@/lib/profile/queries"
 import { createClient } from "@/lib/supabase/server"
@@ -23,7 +24,7 @@ export default async function DashboardLayout({
   const claims = data?.claims
 
   if (!claims?.sub) {
-    redirect("/sign-in?redirectTo=/dashboard")
+    redirect(`/sign-in?redirectTo=${DEFAULT_DASHBOARD_PATH}`)
   }
 
   const onboardingCompleted = await getProfileOnboardingStatus(claims.sub)

@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -13,7 +12,7 @@ export function SidebarBrand() {
       <SidebarMenuItem>
         <SidebarMenuButton
           size="lg"
-          render={<Link href="/dashboard" />}
+          className="pointer-events-none cursor-default hover:bg-transparent active:bg-transparent"
           tooltip="JobBuddy AI"
         >
           <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground">
