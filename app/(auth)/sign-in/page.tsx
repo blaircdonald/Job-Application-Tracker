@@ -19,8 +19,8 @@ function SignInFormFallback() {
 export default function SignInPage() {
   return (
     <AuthLayout
-      title="Welcome back"
-      description="Sign in to continue to your dashboard."
+      title="Sign in"
+      description="Continue to your dashboard with your account."
     >
       <Suspense fallback={<SignInFormFallback />}>
         <SignInForm />
