@@ -3,6 +3,11 @@ import { redirect } from "next/navigation"
 import { DashboardShell } from "@/components/dashboard/dashboard-shell"
 import { DEFAULT_DASHBOARD_PATH } from "@/components/dashboard/nav-config"
 import { OnboardingGate } from "@/components/onboarding/onboarding-gate"
+import {
+  DAILY_APPLY_LIMIT,
+  getDailyApplyDate,
+  getDailyApplyUsage,
+} from "@/lib/applications/daily-limit"
 import { getProfileOnboardingStatus } from "@/lib/profile/queries"
 import { createClient } from "@/lib/supabase/server"
 
@@ -29,12 +34,27 @@ export default async function DashboardLayout({
 
   const onboardingCompleted = await getProfileOnboardingStatus(claims.sub)
 
+  let dailyApplies = {
+    used: 0,
+    remaining: DAILY_APPLY_LIMIT,
+    limit: DAILY_APPLY_LIMIT,
+    date: getDailyApplyDate(),
+  }
+
+  try {
+    dailyApplies = await getDailyApplyUsage(supabase, claims.sub)
+  } catch {
+    // Keep full daily allowance if usage cannot be loaded.
+  }
+
   const cookieStore = await cookies()
   const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false"
 
   return (
     <OnboardingGate needsOnboarding={!onboardingCompleted}>
-      <DashboardShell defaultOpen={defaultOpen}>{children}</DashboardShell>
+      <DashboardShell defaultOpen={defaultOpen} dailyApplies={dailyApplies}>
+        {children}
+      </DashboardShell>
     </OnboardingGate>
   )
 }

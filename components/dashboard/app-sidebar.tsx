@@ -16,16 +16,17 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { CreditsDisplay } from "@/components/dashboard/credits-display"
+import { DailyAppliesDisplay } from "@/components/dashboard/daily-applies-display"
 import { SidebarBrand } from "@/components/dashboard/sidebar-brand"
 import {
   dashboardRoot,
-  footerNavItems,
   mainNavItems,
 } from "@/components/dashboard/nav-config"
+import type { DailyApplyUsage } from "@/lib/applications/daily-limit"
 
-const billingNavItem = footerNavItems[0]
-const settingsNavItem = footerNavItems[1]
+type AppSidebarProps = {
+  dailyApplies: DailyApplyUsage
+}
 
 function isNavActive(pathname: string, href: string) {
   if (href === dashboardRoot.href) {
@@ -35,7 +36,7 @@ function isNavActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-export function AppSidebar() {
+export function AppSidebar({ dailyApplies }: AppSidebarProps) {
   const pathname = usePathname()
 
   return (
@@ -67,38 +68,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <SidebarGroup>
-          <SidebarGroupLabel>Account</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  render={<Link href={billingNavItem.href} />}
-                  isActive={isNavActive(pathname, billingNavItem.href)}
-                  tooltip={billingNavItem.title}
-                >
-                  <HugeiconsIcon icon={billingNavItem.icon} strokeWidth={2} />
-                  <span>{billingNavItem.title}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <CreditsDisplay />
-
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              render={<Link href={settingsNavItem.href} />}
-              isActive={isNavActive(pathname, settingsNavItem.href)}
-              tooltip={settingsNavItem.title}
-            >
-              <HugeiconsIcon icon={settingsNavItem.icon} strokeWidth={2} />
-              <span>{settingsNavItem.title}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <DailyAppliesDisplay usage={dailyApplies} />
       </SidebarFooter>
 
       <SidebarRail />
