@@ -12,6 +12,8 @@ export type Profile = {
   github_url: string | null
   website_url: string | null
   onboarding_completed: boolean
+  daily_applies_used: number
+  daily_applies_date: string | null
   created_at: string
   updated_at: string
 }

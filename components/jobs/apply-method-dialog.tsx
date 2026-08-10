@@ -7,6 +7,7 @@ import { toast } from "sonner"
 
 import {
   getApplicationForJobAction,
+  getDailyApplyUsageAction,
   startAutoApply,
 } from "@/app/actions/applications"
 import { markJobApplied } from "@/app/actions/jobs"
@@ -21,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { isAutoApplySupported } from "@/lib/automation/detect-platform"
+import { DAILY_APPLY_LIMIT_MESSAGE } from "@/lib/applications/daily-limit"
 import { isActiveApplicationStatus } from "@/lib/applications/status"
 import type { ApplicationStatus, Job, JobApplication } from "@/lib/types/database"
 import { cn } from "@/lib/utils"
@@ -62,19 +64,28 @@ export function ApplyMethodDialog({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [application, setApplication] = useState<JobApplication | null>(null)
+  const [remainingApplies, setRemainingApplies] = useState<number | null>(null)
   const [missingFieldsDialogOpen, setMissingFieldsDialogOpen] = useState(false)
 
   const applicationStatus = application?.status ?? null
   const autoApplySupported = isAutoApplySupported(job.platform)
   const hasActiveApplication =
     applicationStatus !== null && isActiveApplicationStatus(applicationStatus)
+  const atDailyLimit = remainingApplies !== null && remainingApplies <= 0
+  const canStartNewApply = !atDailyLimit && !hasActiveApplication
 
   function handleOpenChange(nextOpen: boolean) {
     if (nextOpen) {
       startTransition(async () => {
-        const result = await getApplicationForJobAction(job.id)
-        if (result.success) {
-          setApplication(result.application)
+        const [applicationResult, usageResult] = await Promise.all([
+          getApplicationForJobAction(job.id),
+          getDailyApplyUsageAction(),
+        ])
+        if (applicationResult.success) {
+          setApplication(applicationResult.application)
+        }
+        if (usageResult.success) {
+          setRemainingApplies(usageResult.usage.remaining)
         }
       })
     }
@@ -90,17 +101,25 @@ export function ApplyMethodDialog({
       if (result.success) {
         onApplied?.()
         toast.success("Job opened — marked as applied and removed from matches.")
+      } else {
+        toast.error(result.error)
       }
     })
   }
 
   function handleAutoApply() {
+    if (atDailyLimit && !application) {
+      toast.error(DAILY_APPLY_LIMIT_MESSAGE)
+      return
+    }
+
     startTransition(async () => {
       const result = await startAutoApply(job.id)
       if (result.success) {
         setApplication(result.application)
         toast.success("Auto-apply started. Track progress in Application Status.")
         onOpenChange(false)
+        router.refresh()
         router.push("/dashboard/application-status")
       } else {
         toast.error(result.error)
@@ -124,6 +143,16 @@ export function ApplyMethodDialog({
               {job.company ? ` at ${job.company}` : ""}.
             </DialogDescription>
           </DialogHeader>
+
+          {atDailyLimit ? (
+            <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+              {DAILY_APPLY_LIMIT_MESSAGE}
+            </p>
+          ) : remainingApplies !== null ? (
+            <p className="rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+              {remainingApplies} auto-applies remaining today
+            </p>
+          ) : null}
 
           {applicationStatus ? (
             <p className="rounded-lg border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
@@ -157,6 +186,7 @@ export function ApplyMethodDialog({
             <button
               type="button"
               onClick={handleManualApply}
+              disabled={isPending}
               className={cn(
                 "flex items-start gap-3 rounded-lg border p-4 text-left transition-colors hover:bg-muted/50"
               )}
@@ -174,11 +204,14 @@ export function ApplyMethodDialog({
               type="button"
               onClick={handleAutoApply}
               disabled={
-                !autoApplySupported || hasActiveApplication || isPending
+                !autoApplySupported ||
+                hasActiveApplication ||
+                isPending ||
+                (atDailyLimit && !application)
               }
               className={cn(
                 "flex items-start gap-3 rounded-lg border p-4 text-left transition-colors",
-                autoApplySupported && !hasActiveApplication
+                autoApplySupported && canStartNewApply
                   ? "hover:bg-muted/50"
                   : "cursor-not-allowed opacity-60"
               )}
@@ -199,7 +232,11 @@ export function ApplyMethodDialog({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button variant="secondary" onClick={handleManualApply}>
+            <Button
+              variant="secondary"
+              onClick={handleManualApply}
+              disabled={isPending}
+            >
               <Hand className="size-3.5" />
               Apply Manually
             </Button>

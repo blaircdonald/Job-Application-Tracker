@@ -10,6 +10,11 @@ import {
   updateApplicationStatus,
 } from "@/lib/applications/queries"
 import {
+  getDailyApplyUsage,
+  tryConsumeDailyApply,
+  type DailyApplyUsage,
+} from "@/lib/applications/daily-limit"
+import {
   buildApplicationFieldValues,
   getFillableMissingFields,
 } from "@/lib/applications/missing-fields-utils"
@@ -74,7 +79,16 @@ export async function startAutoApply(jobId: string): Promise<StartAutoApplyResul
     }
   }
 
+  const isNewApplication = !existing
+
   try {
+    if (isNewApplication) {
+      const quota = await tryConsumeDailyApply(supabase, userId)
+      if (!quota.success) {
+        return { success: false, error: quota.error }
+      }
+    }
+
     const application =
       existing ??
       (await createJobApplication(supabase, userId, jobId))
@@ -90,6 +104,7 @@ export async function startAutoApply(jobId: string): Promise<StartAutoApplyResul
       },
     })
 
+    revalidatePath("/dashboard", "layout")
     revalidatePath("/dashboard/jobs")
     revalidatePath("/dashboard/application-status")
     revalidatePath("/dashboard/saved-jobs")
@@ -127,6 +142,29 @@ export async function getApplicationForJobAction(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to load application."
+    return { success: false, error: message }
+  }
+}
+
+export type GetDailyApplyUsageResult =
+  | { success: true; usage: DailyApplyUsage }
+  | { success: false; error: string }
+
+export async function getDailyApplyUsageAction(): Promise<GetDailyApplyUsageResult> {
+  const supabase = await createClient()
+  const { data } = await supabase.auth.getClaims()
+  const userId = data?.claims?.sub
+
+  if (!userId) {
+    return { success: false, error: "You must be signed in." }
+  }
+
+  try {
+    const usage = await getDailyApplyUsage(supabase, userId)
+    return { success: true, usage }
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to load daily apply usage."
     return { success: false, error: message }
   }
 }

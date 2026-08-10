@@ -2,9 +2,7 @@ import {
   Bookmark02Icon,
   Briefcase01Icon,
   CheckListIcon,
-  CreditCardIcon,
   File01Icon,
-  Settings01Icon,
   User03Icon,
 } from "@hugeicons/core-free-icons"
 import type { IconSvgElement } from "@hugeicons/react"
@@ -43,19 +41,6 @@ export const mainNavItems: NavItem[] = [
   },
 ]
 
-export const footerNavItems: NavItem[] = [
-  {
-    title: "Billing / Credits",
-    href: "/dashboard/billing",
-    icon: CreditCardIcon,
-  },
-  {
-    title: "Profile Settings",
-    href: "/dashboard/settings",
-    icon: Settings01Icon,
-  },
-]
-
 export const DEFAULT_DASHBOARD_PATH = "/dashboard/jobs"
 
 export const dashboardRoot = {
@@ -68,9 +53,11 @@ export function getPageTitle(pathname: string): string {
     return dashboardRoot.title
   }
 
-  const item = [...mainNavItems, ...footerNavItems].find(
-    (navItem) => navItem.href === pathname
-  )
+  if (pathname === "/dashboard/settings") {
+    return "Profile Settings"
+  }
+
+  const item = mainNavItems.find((navItem) => navItem.href === pathname)
 
   return item?.title ?? dashboardRoot.title
 }
