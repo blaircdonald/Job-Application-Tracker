@@ -1,4 +1,5 @@
 import {
+  Bookmark02Icon,
   Briefcase01Icon,
   CheckListIcon,
   CreditCardIcon,
@@ -19,6 +20,11 @@ export const mainNavItems: NavItem[] = [
     title: "Jobs",
     href: "/dashboard/jobs",
     icon: Briefcase01Icon,
+  },
+  {
+    title: "Saved Jobs",
+    href: "/dashboard/saved-jobs",
+    icon: Bookmark02Icon,
   },
   {
     title: "Resume",

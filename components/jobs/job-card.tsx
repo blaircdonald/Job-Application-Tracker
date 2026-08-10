@@ -8,13 +8,22 @@ import { toggleSaveJob } from "@/app/actions/jobs"
 import { ApplyMethodDialog } from "@/components/jobs/apply-method-dialog"
 import { PlatformLogo } from "@/components/jobs/platform-logo"
 import { resolveJobDisplay } from "@/lib/jobs/display"
+import {
+  getApplicationStatusLabel,
+  getApplicationStatusVariant,
+} from "@/lib/applications/status"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import type { Job } from "@/lib/types/database"
+import type {
+  ApplicationStatus,
+  Job,
+  JobCardApplicationStatus,
+} from "@/lib/types/database"
 import { cn } from "@/lib/utils"
 
 type JobCardProps = {
   job: Job
+  applicationStatus?: JobCardApplicationStatus | null
   onSavedChange?: (jobId: string, saved: boolean) => void
   onAppliedChange?: (jobId: string) => void
 }
@@ -72,13 +81,34 @@ function MetadataItem({
   )
 }
 
-export function JobCard({ job, onSavedChange, onAppliedChange }: JobCardProps) {
+function getStatusBadge(status: JobCardApplicationStatus): {
+  label: string
+  variant: "default" | "secondary" | "destructive" | "outline"
+} {
+  if (status === "applied") {
+    return { label: "Applied", variant: "default" }
+  }
+  return {
+    label: getApplicationStatusLabel(status as ApplicationStatus),
+    variant: getApplicationStatusVariant(status as ApplicationStatus),
+  }
+}
+
+export function JobCard({
+  job,
+  applicationStatus = null,
+  onSavedChange,
+  onAppliedChange,
+}: JobCardProps) {
   const [isPending, startTransition] = useTransition()
   const [applyDialogOpen, setApplyDialogOpen] = useState(false)
   const match = getMatchMeta(job.match_score)
   const visibleTags = job.tags.slice(0, MAX_VISIBLE_TAGS)
   const hiddenTagCount = job.tags.length - visibleTags.length
   const { title, company } = resolveJobDisplay(job)
+  const statusBadge = applicationStatus
+    ? getStatusBadge(applicationStatus)
+    : null
 
   function handleSave() {
     const nextSaved = !job.saved_status
@@ -115,9 +145,14 @@ export function JobCard({ job, onSavedChange, onAppliedChange }: JobCardProps) {
 
           <div className="min-w-0 flex-1 space-y-3">
             <div className="space-y-0.5">
-              <h3 className="text-base font-semibold leading-snug text-foreground">
-                {title}
-              </h3>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-base font-semibold leading-snug text-foreground">
+                  {title}
+                </h3>
+                {statusBadge && (
+                  <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
+                )}
+              </div>
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-sm text-muted-foreground">
                   {company ?? "Company not listed"}

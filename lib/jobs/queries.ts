@@ -1,5 +1,11 @@
 import { createClient } from "@/lib/supabase/server"
-import type { Job, JobPlatform } from "@/lib/types/database"
+import type {
+  ApplicationStatus,
+  Job,
+  JobPlatform,
+  JobWithApplicationStatus,
+  ProfileFormData,
+} from "@/lib/types/database"
 
 import { searchBraveJobs } from "./brave-search"
 import { normalizeBraveResults } from "./normalize"
@@ -8,7 +14,6 @@ import {
   buildJobSearchContext,
   type JobSearchContext,
 } from "./search-context"
-import type { ProfileFormData } from "@/lib/types/database"
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000
 
@@ -83,6 +88,51 @@ export async function getCachedJobs(
   return (data ?? []).map(mapJobRow)
 }
 
+export async function getSavedJobs(
+  userId: string
+): Promise<JobWithApplicationStatus[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("jobs")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("saved_status", true)
+    .order("created_at", { ascending: false })
+
+  if (error) throw error
+
+  const jobs = (data ?? []).map(mapJobRow)
+  if (jobs.length === 0) return []
+
+  const jobIds = jobs.map((job) => job.id)
+  const { data: applications, error: applicationsError } = await supabase
+    .from("job_applications")
+    .select("job_id, status")
+    .eq("user_id", userId)
+    .in("job_id", jobIds)
+
+  if (applicationsError) throw applicationsError
+
+  const statusByJobId = new Map<string, ApplicationStatus>()
+  for (const application of applications ?? []) {
+    statusByJobId.set(
+      application.job_id as string,
+      application.status as ApplicationStatus
+    )
+  }
+
+  return jobs.map((job) => {
+    const applicationStatus = statusByJobId.get(job.id)
+    if (applicationStatus) {
+      return { ...job, applicationStatus }
+    }
+    if (job.applied_status) {
+      return { ...job, applicationStatus: "applied" as const }
+    }
+    return { ...job, applicationStatus: null }
+  })
+}
+
 function mapJobRow(row: Record<string, unknown>): Job {
   return {
     id: row.id as string,
@@ -118,14 +168,19 @@ async function purgeStaleJobs(
   const supabase = await createClient()
   const { data: existingJobs, error: fetchError } = await supabase
     .from("jobs")
-    .select("id, job_url")
+    .select("id, job_url, saved_status, applied_status")
     .eq("user_id", userId)
     .in("platform", platforms)
 
   if (fetchError) throw fetchError
 
   const staleJobIds = (existingJobs ?? [])
-    .filter((job) => !activeJobUrls.has(job.job_url))
+    .filter(
+      (job) =>
+        !activeJobUrls.has(job.job_url) &&
+        !job.saved_status &&
+        !job.applied_status
+    )
     .map((job) => job.id)
 
   if (staleJobIds.length === 0) return
