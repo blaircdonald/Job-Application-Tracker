@@ -187,6 +187,13 @@ export type JobApplicationWithJob = JobApplication & {
   job: Job
 }
 
+/** Application progress for job cards; "applied" covers manual apply with no application row. */
+export type JobCardApplicationStatus = ApplicationStatus | "applied"
+
+export type JobWithApplicationStatus = Job & {
+  applicationStatus: JobCardApplicationStatus | null
+}
+
 export type ProfileFormData = {
   fullName: string
   email: string

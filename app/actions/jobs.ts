@@ -49,6 +49,7 @@ export async function fetchJobs(
     )
 
     revalidatePath("/dashboard/jobs")
+    revalidatePath("/dashboard/saved-jobs")
 
     return {
       success: true,
@@ -81,6 +82,7 @@ export async function markJobApplied(
   try {
     await markJobAsApplied(supabase, userId, jobId)
     revalidatePath("/dashboard/jobs")
+    revalidatePath("/dashboard/saved-jobs")
     return { success: true }
   } catch (error) {
     const message =
@@ -108,6 +110,7 @@ export async function toggleSaveJob(
   try {
     await updateJobSavedStatus(userId, jobId, saved)
     revalidatePath("/dashboard/jobs")
+    revalidatePath("/dashboard/saved-jobs")
     return { success: true, saved }
   } catch (error) {
     const message =

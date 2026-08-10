@@ -92,6 +92,7 @@ export async function startAutoApply(jobId: string): Promise<StartAutoApplyResul
 
     revalidatePath("/dashboard/jobs")
     revalidatePath("/dashboard/application-status")
+    revalidatePath("/dashboard/saved-jobs")
 
     return {
       success: true,
@@ -210,6 +211,7 @@ export async function retryApplication(
 
     revalidatePath("/dashboard/profile")
     revalidatePath("/dashboard/application-status")
+    revalidatePath("/dashboard/saved-jobs")
 
     return { success: true }
   } catch (retryError) {
@@ -314,6 +316,7 @@ export async function saveMissingApplicationFields(
     revalidatePath("/dashboard/application-status")
     revalidatePath("/dashboard/profile")
     revalidatePath("/dashboard/jobs")
+    revalidatePath("/dashboard/saved-jobs")
 
     return {
       success: true,
