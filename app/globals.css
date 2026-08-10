@@ -128,3 +128,79 @@
     @apply font-sans;
   }
 }
+
+@keyframes landing-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes landing-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes landing-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+@keyframes landing-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.85);
+  }
+}
+
+.landing-float {
+  animation: landing-float 6s ease-in-out infinite;
+}
+
+.landing-row {
+  animation: landing-row-in 0.7s ease-out both;
+}
+
+.landing-progress {
+  width: 40%;
+  animation: landing-progress 1.35s ease-in-out infinite;
+}
+
+.landing-pulse {
+  animation: landing-pulse 1.6s ease-in-out infinite;
+}
+
+.landing-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(circle at center, black 35%, transparent 75%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-float,
+  .landing-row,
+  .landing-progress,
+  .landing-pulse {
+    animation: none;
+  }
+}
