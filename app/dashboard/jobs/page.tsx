@@ -76,7 +76,6 @@ async function JobsContent() {
       profileData={profileData}
       searchContext={searchContext}
       recentActivity={recentActivity}
-      userName={profileData.fullName}
     />
   )
 }

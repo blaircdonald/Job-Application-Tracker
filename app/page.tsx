@@ -15,9 +15,9 @@ export default function Home() {
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-6 lg:px-10">
           <div className="flex items-center gap-2 text-sm font-medium">
             <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground">
-              AI
+              AA
             </span>
-            Job Agent
+            ApplyAI
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" render={<Link href="/sign-in" />}>
@@ -41,7 +41,7 @@ export default function Home() {
                 Apply smarter. Track everything. Land the role.
               </h1>
               <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
-                AI Job Agent helps you tailor applications, stay organized, and
+                ApplyAI helps you tailor applications, stay organized, and
                 move faster through your job search — with secure sign-in and a
                 personal dashboard.
               </p>

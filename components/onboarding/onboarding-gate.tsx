@@ -32,7 +32,7 @@ export function OnboardingGate({
           <DialogHeader>
             <DialogTitle>Upload your resume to get started</DialogTitle>
             <DialogDescription>
-              Before you can use JobBuddy AI, upload your resume so we can build
+              Before you can use ApplyAI, upload your resume so we can build
               your profile automatically.
             </DialogDescription>
           </DialogHeader>
