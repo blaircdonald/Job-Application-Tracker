@@ -20,9 +20,6 @@ export function SidebarBrand() {
           </span>
           <div className="grid flex-1 text-left leading-tight">
             <span className="truncate text-sm font-semibold">ApplyAI</span>
-            <span className="truncate text-xs text-sidebar-foreground/70">
-              Job application assistant
-            </span>
           </div>
         </SidebarMenuButton>
       </SidebarMenuItem>
