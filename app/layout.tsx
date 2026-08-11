@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Job Agent",
+  title: "ApplyAI",
   description: "AI-powered job application assistant",
 };
 

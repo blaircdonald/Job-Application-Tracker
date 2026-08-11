@@ -3,20 +3,16 @@
 import { Sparkles } from "lucide-react"
 
 type WelcomeBannerProps = {
-  name: string
   role: string
   jobCount: number
   fromCache: boolean
 }
 
 export function WelcomeBanner({
-  name,
   role,
   jobCount,
   fromCache,
 }: WelcomeBannerProps) {
-  const greeting = name ? `Welcome back, ${name.split(" ")[0]}` : "Welcome back"
-
   return (
     <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-background to-background p-6 sm:p-8">
       <div className="absolute -right-8 -top-8 size-32 rounded-full bg-primary/10 blur-2xl" />
@@ -27,7 +23,7 @@ export function WelcomeBanner({
             AI-matched opportunities
           </div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            {greeting}
+            Welcome back
           </h1>
           <p className="max-w-xl text-sm text-muted-foreground sm:text-base">
             {jobCount > 0

@@ -13,10 +13,10 @@ import { createClient } from "@/lib/supabase/server"
 
 export const metadata = {
   title: {
-    template: "%s | JobBuddy AI",
-    default: "Dashboard | JobBuddy AI",
+    template: "%s | ApplyAI",
+    default: "Dashboard | ApplyAI",
   },
-  description: "Your JobBuddy AI dashboard",
+  description: "Your ApplyAI dashboard",
 }
 
 export default async function DashboardLayout({

@@ -35,7 +35,6 @@ type JobsDashboardProps = {
   profileData: ProfileFormData
   searchContext: JobSearchContext
   recentActivity: RecentActivityItem[]
-  userName: string
 }
 
 export function JobsDashboard({
@@ -45,7 +44,6 @@ export function JobsDashboard({
   profileData,
   searchContext,
   recentActivity,
-  userName,
 }: JobsDashboardProps) {
   const [jobs, setJobs] = useState(initialJobs)
   const [selectedPlatforms, setSelectedPlatforms] =
@@ -171,7 +169,6 @@ export function JobsDashboard({
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6">
       <WelcomeBanner
-        name={userName}
         role={searchContext.role}
         jobCount={filteredJobs.length}
         fromCache={fromCache}

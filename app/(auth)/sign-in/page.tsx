@@ -4,8 +4,8 @@ import { SignInForm } from "@/components/auth/sign-in-form"
 import { Spinner } from "@/components/ui/spinner"
 
 export const metadata = {
-  title: "Sign In | AI Job Agent",
-  description: "Sign in to your AI Job Agent account",
+  title: "Sign In | ApplyAI",
+  description: "Sign in to your ApplyAI account",
 }
 
 function SignInFormFallback() {
