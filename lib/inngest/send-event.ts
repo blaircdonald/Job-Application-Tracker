@@ -42,7 +42,7 @@ export async function sendApplicationEvent(event: ApplicationEvents): Promise<vo
     }
 
     throw new Error(
-      "Auto-apply could not start. Run `npm run dev` (starts Inngest automatically) or `npm run dev:inngest` in a second terminal."
+      "Auto-apply couldn’t start right now. Please try again in a moment."
     )
   }
 }

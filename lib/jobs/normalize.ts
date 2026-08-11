@@ -41,6 +41,9 @@ const EXPERIENCE_LEVELS = [
 ]
 
 const JOB_TYPES = [
+  "internship",
+  "intern",
+  "co-op",
   "remote",
   "hybrid",
   "on-site",
@@ -88,13 +91,24 @@ function extractJobType(text: string, context: JobSearchContext): string | null 
   const lower = text.toLowerCase()
   for (const type of JOB_TYPES) {
     if (lower.includes(type)) {
+      if (type === "intern") return "Internship"
+      if (type === "co-op") return "Internship"
       return type
         .split("-")
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join("-")
     }
   }
-  return context.jobType
+
+  switch (context.employmentType) {
+    case "internship":
+      return "Internship"
+    case "part-time":
+      return "Part-Time"
+    case "full-time":
+    default:
+      return "Full-Time"
+  }
 }
 
 function extractTags(text: string, context: JobSearchContext): string[] {

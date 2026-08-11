@@ -9,8 +9,9 @@ import {
 } from "@/lib/jobs/queries"
 import { fullProfileToFormData } from "@/lib/profile/save-parsed-data"
 import { getFullProfile } from "@/lib/profile/queries"
-import type { JobPlatform } from "@/lib/types/database"
+import type { EmploymentType, JobPlatform } from "@/lib/types/database"
 import { createClient } from "@/lib/supabase/server"
+import { DEFAULT_EMPLOYMENT_TYPE } from "@/lib/jobs/search-context"
 
 export type FetchJobsResult =
   | {
@@ -23,7 +24,8 @@ export type FetchJobsResult =
 
 export async function fetchJobs(
   platforms: JobPlatform[],
-  forceRefresh = false
+  forceRefresh = false,
+  employmentType: EmploymentType = DEFAULT_EMPLOYMENT_TYPE
 ): Promise<FetchJobsResult> {
   const supabase = await createClient()
   const { data } = await supabase.auth.getClaims()
@@ -45,7 +47,8 @@ export async function fetchJobs(
       userId,
       profileData,
       platforms,
-      forceRefresh
+      forceRefresh,
+      employmentType
     )
 
     revalidatePath("/dashboard/jobs")
