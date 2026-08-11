@@ -33,33 +33,6 @@ function extractCompanyFromLeverUrl(url: string): string | null {
   return match ? formatSlugAsName(match[1]) : null
 }
 
-function extractCompanyFromLinkedInUrl(url: string): string | null {
-  const slugMatch = url.match(/\/jobs\/view\/([^/?#]+)/i)
-  if (!slugMatch) return null
-
-  const slug = slugMatch[1]
-  const atMatch = slug.match(/-at-(.+)$/i)
-  if (atMatch) {
-    return formatSlugAsName(atMatch[1])
-  }
-
-  return null
-}
-
-function extractTitleFromLinkedInSlug(url: string): string | null {
-  const slugMatch = url.match(/\/jobs\/view\/([^/?#]+)/i)
-  if (!slugMatch) return null
-
-  let slug = slugMatch[1].replace(/-\d{5,}$/, "")
-  const atIndex = slug.search(/-at-/i)
-  if (atIndex > 0) {
-    slug = slug.slice(0, atIndex)
-  }
-
-  const title = formatSlugAsName(slug)
-  return title.length > 3 ? title : null
-}
-
 function parseGreenhouseTitle(rawTitle: string, url: string): ParsedJobMetadata {
   const applicationMatch = rawTitle.match(
     /^Job Application for (.+?) at (.+?)(?:\s*-\s*\w{2,3})?\s*$/i
@@ -172,59 +145,6 @@ function parseLeverTitle(rawTitle: string, url: string): ParsedJobMetadata {
   }
 }
 
-function parseLinkedInTitle(rawTitle: string, url: string): ParsedJobMetadata {
-  let title = rawTitle
-    .replace(/\s*\|\s*LinkedIn.*$/i, "")
-    .replace(PLATFORM_SUFFIX, "")
-    .trim()
-
-  const hiringMatch = title.match(/^(.+?)\s+hiring\s+(.+?)(?:\.\.\.|$)/i)
-  if (hiringMatch) {
-    return {
-      company: hiringMatch[1].trim(),
-      title: hiringMatch[2].replace(/\.\.\.$/, "").trim(),
-      postedAt: null,
-    }
-  }
-
-  const companyFromUrl = extractCompanyFromLinkedInUrl(url)
-  const titleFromSlug = extractTitleFromLinkedInSlug(url)
-
-  const dashMatch = title.match(/^(.+?)\s*-\s*(.+)$/)
-  if (dashMatch) {
-    const first = dashMatch[1].trim()
-    const second = dashMatch[2].trim()
-    const companyFromUrl = extractCompanyFromUrl(url)
-
-    if (companyFromUrl) {
-      if (first.toLowerCase() === companyFromUrl.toLowerCase()) {
-        return { title: second, company: companyFromUrl, postedAt: null }
-      }
-      if (second.toLowerCase() === companyFromUrl.toLowerCase()) {
-        return { title: first, company: companyFromUrl, postedAt: null }
-      }
-      return second.length >= first.length
-        ? { title: second, company: companyFromUrl, postedAt: null }
-        : { title: first, company: companyFromUrl, postedAt: null }
-    }
-
-    if (
-      looksLikeJobTitle(second) ||
-      (second.length > first.length && !looksLikeJobTitle(first))
-    ) {
-      return { title: second, company: first, postedAt: null }
-    }
-
-    return { title: first, company: second, postedAt: null }
-  }
-
-  return {
-    title: titleFromSlug ?? title,
-    company: companyFromUrl,
-    postedAt: null,
-  }
-}
-
 function parseIndeedTitle(
   rawTitle: string,
   description: string,
@@ -302,7 +222,6 @@ function extractCompanyFromUrl(url: string): string | null {
   return (
     extractCompanyFromGreenhouseUrl(url) ??
     extractCompanyFromLeverUrl(url) ??
-    extractCompanyFromLinkedInUrl(url) ??
     extractCompanyFromGenericUrl(url)
   )
 }
@@ -398,9 +317,6 @@ export function parseJobMetadata(
       break
     case "lever":
       parsed = parseLeverTitle(rawTitle, result.url)
-      break
-    case "linkedin":
-      parsed = parseLinkedInTitle(rawTitle, result.url)
       break
     case "indeed":
       parsed = parseIndeedTitle(rawTitle, result.description, result.url)

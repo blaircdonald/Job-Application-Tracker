@@ -1,4 +1,8 @@
-import type { JobPlatform, ProfileFormData } from "@/lib/types/database"
+import type {
+  EmploymentType,
+  JobPlatform,
+  ProfileFormData,
+} from "@/lib/types/database"
 
 import { buildPlatformSiteClause } from "@/lib/jobs/platforms"
 
@@ -7,10 +11,38 @@ export type JobSearchContext = {
   techStack: string[]
   skills: string[]
   location: string
-  jobType: string
+  /** Remote / Hybrid / On-site preference inferred from profile location */
+  workArrangement: string
+  /** User-selected employment type for search */
+  employmentType: EmploymentType
   experienceYears: number
   educationFields: string[]
+  summaryKeywords: string[]
 }
+
+export const DEFAULT_EMPLOYMENT_TYPE: EmploymentType = "full-time"
+
+export const EMPLOYMENT_TYPE_OPTIONS: Array<{
+  id: EmploymentType
+  label: string
+  description: string
+}> = [
+  {
+    id: "full-time",
+    label: "Full-time",
+    description: "Permanent full-time roles",
+  },
+  {
+    id: "part-time",
+    label: "Part-time",
+    description: "Part-time and flexible roles",
+  },
+  {
+    id: "internship",
+    label: "Internship",
+    description: "Intern and co-op opportunities",
+  },
+]
 
 function uniqueNonEmpty(values: string[]) {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))]
@@ -36,10 +68,11 @@ function inferRole(data: ProfileFormData): string {
   return "Software Engineer"
 }
 
-function inferJobType(data: ProfileFormData): string {
+function inferWorkArrangement(data: ProfileFormData): string {
   const location = data.location.toLowerCase()
-  if (location.includes("remote")) return "Remote"
   if (location.includes("hybrid")) return "Hybrid"
+  if (location.includes("on-site") || location.includes("onsite")) return "On-site"
+  if (location.includes("remote")) return "Remote"
   return "Remote"
 }
 
@@ -48,7 +81,38 @@ function inferExperienceYears(data: ProfileFormData): number {
   const totalRoles = data.workExperiences.length
 
   if (currentRoles > 0) return Math.min(10, totalRoles + 2)
-  return Math.max(1, totalRoles)
+  return Math.max(0, totalRoles)
+}
+
+function extractSummaryKeywords(summary: string): string[] {
+  const stopWords = new Set([
+    "with",
+    "from",
+    "that",
+    "this",
+    "have",
+    "been",
+    "using",
+    "years",
+    "year",
+    "experience",
+    "experienced",
+    "professional",
+    "looking",
+    "seeking",
+    "passionate",
+    "about",
+    "and",
+    "the",
+    "for",
+    "into",
+  ])
+
+  return uniqueNonEmpty(
+    summary
+      .split(/[^a-zA-Z0-9+#.]+/)
+      .filter((word) => word.length > 2 && !stopWords.has(word.toLowerCase()))
+  ).slice(0, 6)
 }
 
 function getPrimaryLocationTerm(location: string): string {
@@ -64,22 +128,44 @@ function getPrimaryLocationTerm(location: string): string {
   return city ? quoteIfNeeded(city) : ""
 }
 
+function employmentTypeQueryTerm(employmentType: EmploymentType): string {
+  switch (employmentType) {
+    case "internship":
+      return "internship OR intern OR \"co-op\" OR coop"
+    case "part-time":
+      return "\"part-time\" OR \"part time\""
+    case "full-time":
+    default:
+      return "\"full-time\" OR \"full time\""
+  }
+}
+
+function seniorityQueryTerm(experienceYears: number, employmentType: EmploymentType): string {
+  if (employmentType === "internship") return "intern OR internship OR \"entry level\""
+  if (experienceYears <= 1) return "\"entry level\" OR junior OR associate"
+  if (experienceYears >= 6) return "senior OR staff OR lead"
+  return ""
+}
+
 export function buildJobSearchContext(
-  data: ProfileFormData
+  data: ProfileFormData,
+  employmentType: EmploymentType = DEFAULT_EMPLOYMENT_TYPE
 ): JobSearchContext {
   const projectTech = data.projects.flatMap((project) => project.technologies)
   const techStack = uniqueNonEmpty([...data.skills, ...projectTech])
 
   return {
     role: inferRole(data),
-    techStack: techStack.slice(0, 5),
-    skills: uniqueNonEmpty(data.skills),
+    techStack: techStack.slice(0, 8),
+    skills: uniqueNonEmpty(data.skills).slice(0, 12),
     location: data.location.trim() || "United States",
-    jobType: inferJobType(data),
+    workArrangement: inferWorkArrangement(data),
+    employmentType,
     experienceYears: inferExperienceYears(data),
     educationFields: uniqueNonEmpty(
       data.education.map((item) => item.fieldOfStudy || item.degree || "")
-    ),
+    ).slice(0, 3),
+    summaryKeywords: extractSummaryKeywords(data.professionalSummary ?? ""),
   }
 }
 
@@ -94,22 +180,59 @@ export function buildPlatformSearchQueries(
   const siteClause = buildPlatformSiteClause(platform)
   const rolePhrase = quoteIfNeeded(context.role)
   const keywords = uniqueNonEmpty([
-    ...context.techStack.slice(0, 2),
-    ...context.skills.slice(0, 2),
-  ]).slice(0, 2)
+    ...context.techStack.slice(0, 3),
+    ...context.skills.slice(0, 3),
+    ...context.summaryKeywords.slice(0, 2),
+  ]).slice(0, 4)
   const locationTerm = getPrimaryLocationTerm(context.location)
-  const jobType = quoteIfNeeded(context.jobType)
+  const employmentTerm = `(${employmentTypeQueryTerm(context.employmentType)})`
+  const seniority = seniorityQueryTerm(
+    context.experienceYears,
+    context.employmentType
+  )
+  const educationTerm =
+    context.employmentType === "internship" && context.educationFields[0]
+      ? quoteIfNeeded(context.educationFields[0])
+      : ""
+  const workArrangement = quoteIfNeeded(context.workArrangement)
 
   const queries = [
-    joinQueryTerms([siteClause, rolePhrase, ...keywords, jobType, locationTerm]),
-    joinQueryTerms([siteClause, rolePhrase, ...keywords, jobType]),
-    joinQueryTerms([siteClause, rolePhrase, jobType]),
     joinQueryTerms([
       siteClause,
-      keywords[0] ? quoteIfNeeded(`${keywords[0]} Developer`) : '"Software Engineer"',
-      jobType,
+      rolePhrase,
+      ...keywords.slice(0, 3).map(quoteIfNeeded),
+      employmentTerm,
+      seniority,
+      educationTerm,
+      locationTerm,
     ]),
-    joinQueryTerms([siteClause, rolePhrase || '"Software Engineer"', "jobs"]),
+    joinQueryTerms([
+      siteClause,
+      rolePhrase,
+      ...keywords.slice(0, 2).map(quoteIfNeeded),
+      employmentTerm,
+      workArrangement,
+    ]),
+    joinQueryTerms([
+      siteClause,
+      rolePhrase,
+      employmentTerm,
+      seniority,
+      locationTerm,
+    ]),
+    joinQueryTerms([
+      siteClause,
+      keywords[0]
+        ? quoteIfNeeded(`${keywords[0]} ${context.role.split(" ").slice(-1)[0] || "Engineer"}`)
+        : rolePhrase || '"Software Engineer"',
+      employmentTerm,
+    ]),
+    joinQueryTerms([
+      siteClause,
+      rolePhrase || '"Software Engineer"',
+      employmentTerm,
+      "jobs",
+    ]),
   ]
 
   return [...new Set(queries.filter(Boolean))]

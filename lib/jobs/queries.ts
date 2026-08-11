@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import type {
   ApplicationStatus,
+  EmploymentType,
   Job,
   JobPlatform,
   JobWithApplicationStatus,
@@ -12,6 +13,7 @@ import { normalizeBraveResults } from "./normalize"
 import { DEFAULT_PLATFORMS } from "./platforms"
 import {
   buildJobSearchContext,
+  DEFAULT_EMPLOYMENT_TYPE,
   type JobSearchContext,
 } from "./search-context"
 
@@ -67,7 +69,7 @@ export async function getLatestFetchTime(
 
 export async function getCachedJobs(
   userId: string,
-  platforms?: JobPlatform[]
+  platforms: JobPlatform[] = DEFAULT_PLATFORMS
 ): Promise<Job[]> {
   const supabase = await createClient()
   let query = supabase
@@ -75,11 +77,8 @@ export async function getCachedJobs(
     .select("*")
     .eq("user_id", userId)
     .eq("applied_status", false)
+    .in("platform", platforms)
     .order("match_score", { ascending: false })
-
-  if (platforms && platforms.length > 0) {
-    query = query.in("platform", platforms)
-  }
 
   const { data, error } = await query
 
@@ -268,20 +267,21 @@ export async function fetchAndCacheJobs(
   userId: string,
   profileData: ProfileFormData,
   platforms: JobPlatform[] = DEFAULT_PLATFORMS,
-  forceRefresh = false
+  forceRefresh = false,
+  employmentType: EmploymentType = DEFAULT_EMPLOYMENT_TYPE
 ): Promise<JobsFetchResult> {
-  const context = buildJobSearchContext(profileData)
+  const context = buildJobSearchContext(profileData, employmentType)
   const latestFetch = await getLatestFetchTime(userId)
   const cacheFresh = isCacheFresh(latestFetch)
   const cachedJobs = await getCachedJobs(userId)
 
-  const platformsToFetch = forceRefresh
-    ? platforms
-    : cacheFresh
-      ? getStalePlatforms(platforms, cachedJobs)
-      : platforms
+  // Employment-type changes need a fresh search; cached listings aren't typed.
+  const platformsToFetch =
+    forceRefresh || !cacheFresh
+      ? platforms
+      : getStalePlatforms(platforms, cachedJobs)
 
-  if (platformsToFetch.length === 0) {
+  if (platformsToFetch.length === 0 && !forceRefresh) {
     return {
       jobs: cachedJobs,
       fromCache: true,
@@ -293,14 +293,14 @@ export async function fetchAndCacheJobs(
   const fetchedAt = new Date().toISOString()
   const { normalizedJobs, errors } = await fetchPlatformsFromBrave(
     userId,
-    platformsToFetch,
+    forceRefresh ? platforms : platformsToFetch,
     context,
     fetchedAt
   )
 
   if (forceRefresh && normalizedJobs.length > 0) {
     const activeJobUrls = new Set(normalizedJobs.map((job) => job.job_url))
-    await purgeStaleJobs(userId, platformsToFetch, activeJobUrls)
+    await purgeStaleJobs(userId, platforms, activeJobUrls)
   }
 
   const jobs = await getCachedJobs(userId)

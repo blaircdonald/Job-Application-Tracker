@@ -18,8 +18,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { getBrowserbaseSessionUrl } from "@/lib/automation/session-url"
-import { isGeminiQuotaErrorMessage } from "@/lib/automation/format-error"
 import {
   getApplicationStatusLabel,
   getApplicationStatusVariant,
@@ -93,29 +91,9 @@ export function ApplicationStatusList({
             </CardHeader>
             <CardContent className="space-y-3">
               {application.error_message ? (
-                <div className="space-y-1">
-                  <p className="text-xs text-destructive">
-                    {application.error_message}
-                  </p>
-                  {isGeminiQuotaErrorMessage(application.error_message) ? (
-                    <p className="text-xs text-muted-foreground">
-                      Check your quota at{" "}
-                      <a
-                        href="https://ai.dev/rate-limit"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline underline-offset-2"
-                      >
-                        ai.dev/rate-limit
-                      </a>{" "}
-                      or update{" "}
-                      <code className="rounded bg-muted px-1 py-0.5 text-[0.65rem]">
-                        STAGEHAND_MODEL
-                      </code>{" "}
-                      in .env.local.
-                    </p>
-                  ) : null}
-                </div>
+                <p className="text-xs text-destructive">
+                  {application.error_message}
+                </p>
               ) : null}
 
               {application.missing_fields.length > 0 ? (
@@ -164,24 +142,6 @@ export function ApplicationStatusList({
                   >
                     <RefreshCw className="size-3.5" />
                     Retry
-                  </Button>
-                ) : null}
-
-                {application.browserbase_session_id ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    render={
-                      <a
-                        href={getBrowserbaseSessionUrl(
-                          application.browserbase_session_id
-                        )}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      />
-                    }
-                  >
-                    View Browserbase Session
                   </Button>
                 ) : null}
               </div>

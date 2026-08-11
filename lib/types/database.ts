@@ -107,8 +107,9 @@ export type JobPlatform =
   | "lever"
   | "workable"
   | "wellfound"
-  | "linkedin"
   | "indeed"
+
+export type EmploymentType = "full-time" | "part-time" | "internship"
 
 export type Job = {
   id: string

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react"
 
 import { fetchJobs } from "@/app/actions/jobs"
+import { EmploymentTypeCards } from "@/components/jobs/employment-type-cards"
 import { JobsEmptyState } from "@/components/jobs/jobs-empty-state"
 import { JobsErrorState } from "@/components/jobs/jobs-error-state"
 import { JobsSearchEmptyState } from "@/components/jobs/jobs-search-empty-state"
@@ -15,9 +16,17 @@ import { WelcomeBanner } from "@/components/jobs/welcome-banner"
 import { ProfileCompletenessCard } from "@/components/profile/profile-completeness-card"
 import { filterJobs } from "@/lib/jobs/filter-jobs"
 import { DEFAULT_PLATFORMS } from "@/lib/jobs/platforms"
-import type { JobSearchContext } from "@/lib/jobs/search-context"
+import {
+  DEFAULT_EMPLOYMENT_TYPE,
+  type JobSearchContext,
+} from "@/lib/jobs/search-context"
 import type { RecentActivityItem } from "@/lib/jobs/queries"
-import type { Job, JobPlatform, ProfileFormData } from "@/lib/types/database"
+import type {
+  EmploymentType,
+  Job,
+  JobPlatform,
+  ProfileFormData,
+} from "@/lib/types/database"
 
 type JobsDashboardProps = {
   initialJobs: Job[]
@@ -41,6 +50,9 @@ export function JobsDashboard({
   const [jobs, setJobs] = useState(initialJobs)
   const [selectedPlatforms, setSelectedPlatforms] =
     useState<JobPlatform[]>(DEFAULT_PLATFORMS)
+  const [employmentType, setEmploymentType] = useState<EmploymentType>(
+    searchContext.employmentType ?? DEFAULT_EMPLOYMENT_TYPE
+  )
   const [fromCache, setFromCache] = useState(initialFromCache)
   const [fetchedAt, setFetchedAt] = useState(initialFetchedAt)
   const [error, setError] = useState<string | null>(null)
@@ -49,11 +61,19 @@ export function JobsDashboard({
   const [isPending, startTransition] = useTransition()
 
   const loadJobs = useCallback(
-    (platforms: JobPlatform[], forceRefresh = false) => {
+    (
+      platforms: JobPlatform[],
+      forceRefresh = false,
+      nextEmploymentType: EmploymentType = employmentType
+    ) => {
       setError(null)
 
       startTransition(async () => {
-        const result = await fetchJobs(platforms, forceRefresh)
+        const result = await fetchJobs(
+          platforms,
+          forceRefresh,
+          nextEmploymentType
+        )
 
         if (result.success) {
           setJobs(result.jobs)
@@ -64,7 +84,7 @@ export function JobsDashboard({
         }
       })
     },
-    []
+    [employmentType]
   )
 
   useEffect(() => {
@@ -89,6 +109,11 @@ export function JobsDashboard({
     if (missingPlatforms.length > 0) {
       loadJobs(platforms, false)
     }
+  }
+
+  function handleEmploymentTypeChange(nextType: EmploymentType) {
+    setEmploymentType(nextType)
+    loadJobs(selectedPlatforms, true, nextType)
   }
 
   function handleRefresh() {
@@ -150,6 +175,12 @@ export function JobsDashboard({
         role={searchContext.role}
         jobCount={filteredJobs.length}
         fromCache={fromCache}
+      />
+
+      <EmploymentTypeCards
+        selected={employmentType}
+        onChange={handleEmploymentTypeChange}
+        disabled={isPending}
       />
 
       <div className="space-y-3">

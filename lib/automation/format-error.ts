@@ -25,25 +25,49 @@ export function isGeminiQuotaErrorMessage(message: string): boolean {
   )
 }
 
+/**
+ * Maps automation failures to short, user-facing messages.
+ * Raw provider/config details stay in server logs only.
+ */
 export function formatAutomationError(error: unknown): string {
   const message = getErrorMessage(error)
+  console.error("[auto-apply]", message)
 
   if (isGeminiQuotaErrorMessage(message)) {
-    return "Gemini API quota exceeded. Check usage at ai.dev/rate-limit, enable billing on your Google AI project, or set STAGEHAND_MODEL in .env.local to a model with available quota."
+    return "Auto-apply is temporarily unavailable. Please try again later."
   }
 
-  if (/Missing GEMINI_API_KEY/i.test(message)) {
-    return "Gemini API key is not configured. Add GEMINI_API_KEY to .env.local."
+  if (/Missing GEMINI_API_KEY|Gemini API key/i.test(message)) {
+    return "Auto-apply is temporarily unavailable. Please try again later."
   }
 
-  if (/Missing BROWSERBASE/i.test(message)) {
-    return "Browserbase is not configured. Add BROWSERBASE_API_KEY and BROWSERBASE_PROJECT_ID to .env.local."
+  if (/Missing BROWSERBASE|Browserbase/i.test(message)) {
+    return "Auto-apply is temporarily unavailable. Please try again later."
   }
 
-  const cleaned = message.replace(
-    /^AI_RetryError:\s*Failed after \d+ attempts\.\s*Last error:\s*/i,
-    ""
-  )
+  if (/timeout|timed out|navigation timeout/i.test(message)) {
+    return "The application page took too long to respond. Please try again."
+  }
 
-  return cleaned.slice(0, 500)
+  if (/net::|ECONNREFUSED|ENOTFOUND|fetch failed|network/i.test(message)) {
+    return "We couldn’t reach the job application page. Please try again."
+  }
+
+  if (/captcha|cloudflare|access denied|blocked/i.test(message)) {
+    return "This application page blocked automated filling. Try applying manually."
+  }
+
+  if (/not found|404|page.*(removed|closed|expired)/i.test(message)) {
+    return "This job posting may no longer be available."
+  }
+
+  if (/resume|file upload|download resume/i.test(message)) {
+    return "We couldn’t attach your resume. Check that a resume is uploaded, then retry."
+  }
+
+  if (/profile not found/i.test(message)) {
+    return "Your profile couldn’t be loaded. Please refresh and try again."
+  }
+
+  return "Something went wrong while applying. Please try again."
 }

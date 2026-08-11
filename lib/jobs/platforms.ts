@@ -49,17 +49,6 @@ export const JOB_PLATFORMS: JobPlatformConfig[] = [
     selectedClass: "border-rose-500 bg-rose-500/10 ring-2 ring-rose-500/20",
   },
   {
-    id: "linkedin",
-    name: "LinkedIn",
-    searchSites: ["linkedin.com", "www.linkedin.com"],
-    siteClause:
-      "site:linkedin.com/jobs OR site:www.linkedin.com/jobs",
-    logoSrc: "/platforms/linkedin.png",
-    description: "Professional network job listings",
-    accentClass: "border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/10",
-    selectedClass: "border-sky-600 bg-sky-500/10 ring-2 ring-sky-500/20",
-  },
-  {
     id: "indeed",
     name: "Indeed",
     searchSites: ["indeed.com", "www.indeed.com"],
@@ -85,14 +74,6 @@ export function isPlatformJobUrl(url: string, platform: JobPlatform): boolean {
     const parsed = new URL(url)
     const hostname = parsed.hostname.replace(/^www\./, "")
     const pathname = parsed.pathname.toLowerCase()
-
-    if (platform === "linkedin") {
-      return (
-        (hostname === "linkedin.com" || hostname.endsWith(".linkedin.com")) &&
-        (pathname.includes("/jobs/view") ||
-          pathname.includes("/jobs/collections"))
-      )
-    }
 
     if (platform === "indeed") {
       return (

@@ -1,6 +1,18 @@
 import type { NormalizedJob } from "./normalize"
 import type { JobSearchContext } from "./search-context"
 
+function employmentTypeAliases(employmentType: JobSearchContext["employmentType"]) {
+  switch (employmentType) {
+    case "internship":
+      return ["internship", "intern", "co-op", "coop", "co op"]
+    case "part-time":
+      return ["part-time", "part time", "parttime"]
+    case "full-time":
+    default:
+      return ["full-time", "full time", "fulltime"]
+  }
+}
+
 export function calculateMatchScore(
   job: Pick<
     NormalizedJob,
@@ -33,6 +45,12 @@ export function calculateMatchScore(
     }
   }
 
+  for (const keyword of context.summaryKeywords) {
+    if (searchableText.includes(keyword.toLowerCase())) {
+      score += 3
+    }
+  }
+
   const roleWords = context.role
     .toLowerCase()
     .split(/\s+/)
@@ -54,15 +72,32 @@ export function calculateMatchScore(
   }
 
   if (
-    context.jobType &&
-    job.job_type?.toLowerCase().includes(context.jobType.toLowerCase())
+    context.workArrangement &&
+    searchableText.includes(context.workArrangement.toLowerCase())
   ) {
-    score += 10
+    score += 6
+  }
+
+  const employmentAliases = employmentTypeAliases(context.employmentType)
+  const employmentMatch = employmentAliases.some((alias) =>
+    searchableText.includes(alias)
+  )
+
+  if (employmentMatch) {
+    score += 14
+  } else if (context.employmentType === "internship") {
+    // Internships should not rank highly if the listing looks like senior FT
+    if (
+      /\b(senior|staff|principal|director|lead)\b/i.test(searchableText) &&
+      !/\b(intern|internship)\b/i.test(searchableText)
+    ) {
+      score -= 15
+    }
   }
 
   if (job.tags.length >= 3) {
     score += 5
   }
 
-  return Math.min(100, Math.max(20, Math.round(score)))
+  return Math.min(100, Math.max(15, Math.round(score)))
 }
