@@ -25,7 +25,7 @@ function hasText(value: string | null | undefined) {
   return Boolean(value?.trim())
 }
 
-function splitFullName(fullName: string | null | undefined) {
+export function splitFullName(fullName: string | null | undefined) {
   const parts = (fullName ?? "").trim().split(/\s+/).filter(Boolean)
   return {
     firstName: parts[0] ?? "",

@@ -5,18 +5,11 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import {
   mapFieldsToProfile,
   profileHasResume,
+  splitFullName,
 } from "@/lib/automation/map-fields"
 import { getLatestParsedResume } from "@/lib/applications/resume"
 import { getFullProfileWithClient } from "@/lib/profile/queries"
 import type { DetectedField, FullProfile, MissingField } from "@/lib/types/database"
-
-function splitFullName(fullName: string | null | undefined) {
-  const parts = (fullName ?? "").trim().split(/\s+/).filter(Boolean)
-  return {
-    firstName: parts[0] ?? "",
-    lastName: parts.length > 1 ? parts.slice(1).join(" ") : "",
-  }
-}
 
 export async function patchProfileFromMissingFields(
   supabase: SupabaseClient,

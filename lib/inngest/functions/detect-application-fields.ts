@@ -14,6 +14,7 @@ import { getPlatformAdapter } from "@/lib/automation/platforms"
 import { updateApplicationStatus } from "@/lib/applications/queries"
 import { getLatestParsedResume } from "@/lib/applications/resume"
 import { inngest } from "@/lib/inngest/client"
+import { AUTO_APPLY_CONCURRENCY } from "@/lib/inngest/concurrency"
 import { NonRetriableError } from "inngest"
 import { getFullProfileWithClient } from "@/lib/profile/queries"
 import { createAdminClient } from "@/lib/supabase/admin"
@@ -23,10 +24,7 @@ export const detectApplicationFields = inngest.createFunction(
   {
     id: "detect-application-fields",
     retries: 2,
-    concurrency: {
-      limit: 1,
-      key: "event.data.userId",
-    },
+    concurrency: AUTO_APPLY_CONCURRENCY,
     triggers: [{ event: "app/application.detect-fields" }],
   },
   async ({ event, step }) => {

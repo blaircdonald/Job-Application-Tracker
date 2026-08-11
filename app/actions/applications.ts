@@ -6,7 +6,6 @@ import {
   createJobApplication,
   getApplicationForJob,
   getApplicationWithJob,
-  isActiveApplicationStatus,
   updateApplicationStatus,
 } from "@/lib/applications/queries"
 import {
@@ -22,6 +21,7 @@ import {
   patchProfileFromMissingFields,
   recheckApplicationMapping,
 } from "@/lib/applications/save-missing-fields"
+import { canRestartAutoApply, isInFlightAutoApplyStatus } from "@/lib/applications/status"
 import { resolveApplicationPlatform } from "@/lib/automation/detect-platform"
 import { isAutoApplySupported } from "@/lib/automation/detect-platform"
 import { sendApplicationEvent } from "@/lib/inngest/send-event"
@@ -72,12 +72,15 @@ export async function startAutoApply(jobId: string): Promise<StartAutoApplyResul
       error: "You have already applied to this job.",
     }
   }
-  // Stuck "queued" rows can be re-kicked; other active statuses are in-flight.
-  if (
-    existing &&
-    isActiveApplicationStatus(existing.status) &&
-    existing.status !== "queued"
-  ) {
+  if (existing?.status === "missing_profile_info") {
+    return {
+      success: false,
+      error:
+        "This application needs missing profile info before it can continue. Open your profile to finish it.",
+    }
+  }
+
+  if (existing && isInFlightAutoApplyStatus(existing.status)) {
     return {
       success: false,
       error: "An application is already in progress for this job.",
@@ -98,7 +101,7 @@ export async function startAutoApply(jobId: string): Promise<StartAutoApplyResul
       existing ??
       (await createJobApplication(supabase, userId, jobId))
 
-    if (existing?.status === "queued") {
+    if (existing && canRestartAutoApply(existing.status)) {
       await updateApplicationStatus(supabase, application.id, {
         status: "queued",
         error_message: null,

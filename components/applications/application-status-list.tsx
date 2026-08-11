@@ -1,7 +1,7 @@
 "use client"
 
+import { ExternalLink, MonitorPlay, RefreshCw } from "lucide-react"
 import Link from "next/link"
-import { ExternalLink, RefreshCw } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
@@ -22,6 +22,7 @@ import {
   getApplicationStatusLabel,
   getApplicationStatusVariant,
 } from "@/lib/applications/status"
+import { getBrowserbaseSessionUrl } from "@/lib/automation/session-url"
 import type { JobApplicationWithJob } from "@/lib/types/database"
 
 type ApplicationStatusListProps = {
@@ -42,6 +43,7 @@ export function ApplicationStatusList({
       const result = await retryApplication(applicationId)
       if (result.success) {
         toast.success("Application retry started")
+        router.refresh()
       } else {
         toast.error(result.error)
       }
@@ -59,7 +61,7 @@ export function ApplicationStatusList({
         <CardHeader>
           <CardTitle>No applications yet</CardTitle>
           <CardDescription>
-            Start an auto-apply from a job card to track progress here.
+            Use Open Job URL to Apply on a job card to start auto-apply.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -78,7 +80,9 @@ export function ApplicationStatusList({
                   className="size-10 shrink-0 rounded-md"
                 />
                 <div>
-                  <CardTitle className="text-base">{application.job.title}</CardTitle>
+                  <CardTitle className="text-base">
+                    {application.job.title}
+                  </CardTitle>
                   <CardDescription>
                     {application.job.company ?? "Unknown company"} ·{" "}
                     {application.job.platform}
@@ -125,13 +129,45 @@ export function ApplicationStatusList({
                   View Job
                 </Button>
 
-                {application.status === "missing_profile_info" ? (
+                {application.browserbase_session_id ? (
                   <Button
+                    variant="outline"
                     size="sm"
-                    onClick={() => openMissingFieldsDialog(application)}
+                    render={
+                      <a
+                        href={getBrowserbaseSessionUrl(
+                          application.browserbase_session_id
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      />
+                    }
                   >
-                    Fill Missing Data
+                    <MonitorPlay className="size-3.5" />
+                    Browserbase Session
                   </Button>
+                ) : null}
+
+                {application.status === "missing_profile_info" ? (
+                  <>
+                    <Button
+                      size="sm"
+                      render={
+                        <Link
+                          href={`/dashboard/profile?applicationId=${application.id}`}
+                        />
+                      }
+                    >
+                      Complete Profile
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openMissingFieldsDialog(application)}
+                    >
+                      Fill Missing Data
+                    </Button>
+                  </>
                 ) : null}
 
                 {application.status === "failed" ||
