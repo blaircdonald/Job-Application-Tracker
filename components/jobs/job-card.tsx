@@ -218,13 +218,13 @@ export function JobCard({
             </p>
           </div>
 
-          <div className="flex w-full shrink-0 flex-col gap-2 sm:w-36">
+          <div className="flex w-full shrink-0 flex-col gap-2 sm:w-44">
             <Button
               type="button"
-              className="h-9 w-full justify-center text-sm"
+              className="h-9 w-full justify-center whitespace-normal px-2 text-center text-sm leading-tight"
               onClick={() => setApplyDialogOpen(true)}
             >
-              Apply
+              Open Job URL to Apply
             </Button>
             <ApplyMethodDialog
               job={job}

@@ -25,7 +25,10 @@ export function createStagehandConfig(sessionId?: string) {
       modelName: getStagehandModel(),
       apiKey: modelApiKey,
     },
-    verbose: 1 as const,
+    // pino-pretty worker transport breaks on Vercel serverless.
+    disablePino: true,
+    logger: console.log,
+    verbose: process.env.VERCEL ? (0 as const) : (1 as const),
     ...(sessionId
       ? { browserbaseSessionID: sessionId }
       : {

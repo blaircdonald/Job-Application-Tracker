@@ -21,6 +21,7 @@ import {
   getLatestParsedResume,
 } from "@/lib/applications/resume"
 import { inngest } from "@/lib/inngest/client"
+import { AUTO_APPLY_CONCURRENCY } from "@/lib/inngest/concurrency"
 import { NonRetriableError } from "inngest"
 import { getFullProfileWithClient } from "@/lib/profile/queries"
 import { createAdminClient } from "@/lib/supabase/admin"
@@ -30,10 +31,7 @@ export const submitApplication = inngest.createFunction(
   {
     id: "submit-application",
     retries: 2,
-    concurrency: {
-      limit: 1,
-      key: "event.data.userId",
-    },
+    concurrency: AUTO_APPLY_CONCURRENCY,
     triggers: [{ event: "app/application.submit" }],
   },
   async ({ event, step }) => {

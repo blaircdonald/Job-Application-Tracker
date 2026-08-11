@@ -1,42 +1,30 @@
 import type { PlatformAdapter } from "@/lib/automation/platforms/types"
-import {
-  detectFields as detectGreenhouseFields,
-  fillAndSubmit as fillGreenhouse,
-} from "@/lib/automation/platforms/greenhouse"
-import {
-  detectFields as detectLeverFields,
-  fillAndSubmit as fillLever,
-} from "@/lib/automation/platforms/lever"
-import {
-  detectFields as detectWorkableFields,
-  fillAndSubmit as fillWorkable,
-} from "@/lib/automation/platforms/workable"
-import {
-  detectFields as detectWellfoundFields,
-  fillAndSubmit as fillWellfound,
-} from "@/lib/automation/platforms/wellfound"
+import * as greenhouse from "@/lib/automation/platforms/greenhouse"
+import * as lever from "@/lib/automation/platforms/lever"
+import * as workable from "@/lib/automation/platforms/workable"
+import * as wellfound from "@/lib/automation/platforms/wellfound"
 import type { JobPlatform } from "@/lib/types/database"
 
-const adapters: Record<string, PlatformAdapter> = {
+const adapters: Partial<Record<JobPlatform, PlatformAdapter>> = {
   greenhouse: {
     platform: "greenhouse",
-    detectFields: detectGreenhouseFields,
-    fillAndSubmit: fillGreenhouse,
+    detectFields: greenhouse.detectFields,
+    fillAndSubmit: greenhouse.fillAndSubmit,
   },
   lever: {
     platform: "lever",
-    detectFields: detectLeverFields,
-    fillAndSubmit: fillLever,
+    detectFields: lever.detectFields,
+    fillAndSubmit: lever.fillAndSubmit,
   },
   workable: {
     platform: "workable",
-    detectFields: detectWorkableFields,
-    fillAndSubmit: fillWorkable,
+    detectFields: workable.detectFields,
+    fillAndSubmit: workable.fillAndSubmit,
   },
   wellfound: {
     platform: "wellfound",
-    detectFields: detectWellfoundFields,
-    fillAndSubmit: fillWellfound,
+    detectFields: wellfound.detectFields,
+    fillAndSubmit: wellfound.fillAndSubmit,
   },
 }
 

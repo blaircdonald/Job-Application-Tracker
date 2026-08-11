@@ -215,11 +215,3 @@ export async function getPendingMissingProfileApplications(
     })
     .filter((item): item is JobApplicationWithJob => item !== null)
 }
-
-export function isTerminalApplicationStatus(status: ApplicationStatus): boolean {
-  return status === "submitted" || status === "failed"
-}
-
-export function isActiveApplicationStatus(status: ApplicationStatus): boolean {
-  return !isTerminalApplicationStatus(status)
-}

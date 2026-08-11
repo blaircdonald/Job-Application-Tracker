@@ -8,6 +8,20 @@ export function isActiveApplicationStatus(status: ApplicationStatus): boolean {
   return !isTerminalApplicationStatus(status)
 }
 
+/** Statuses where a new auto-apply kickoff should be blocked. */
+export function isInFlightAutoApplyStatus(status: ApplicationStatus): boolean {
+  return (
+    status === "detecting_fields" ||
+    status === "ready_to_submit" ||
+    status === "submitting"
+  )
+}
+
+/** Statuses that can re-fire detect-fields. */
+export function canRestartAutoApply(status: ApplicationStatus): boolean {
+  return status === "queued" || status === "failed"
+}
+
 export function getApplicationStatusLabel(status: ApplicationStatus): string {
   switch (status) {
     case "queued":

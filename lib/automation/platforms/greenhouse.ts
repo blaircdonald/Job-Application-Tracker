@@ -1,77 +1,27 @@
 import type { DetectedField } from "@/lib/types/database"
+import {
+  detectApplicationFields,
+  fillAndSubmitApplication,
+  type PlatformApplyConfig,
+} from "@/lib/automation/platforms/shared"
 import type {
   FillAndSubmitInput,
   PlatformAdapterContext,
 } from "@/lib/automation/platforms/types"
-import {
-  completeApplicationForm,
-  ensureRequiredDropdownsFilled,
-  submitApplicationForm,
-  verifySubmission,
-} from "@/lib/automation/fill-form"
-import {
-  extractFormFields,
-  navigateToJob,
-  uploadResume,
-} from "@/lib/automation/platforms/types"
 
-async function clickApplyButton(stagehand: PlatformAdapterContext["stagehand"]) {
-  await stagehand.act(
-    "Click the Apply or Submit Application button to open the application form if it is not already visible"
-  )
+const GREENHOUSE_CONFIG: PlatformApplyConfig = {
+  openFormInstruction:
+    "Click the Apply or Submit Application button to open the Greenhouse application form if it is not already visible",
+  openFormRetryInstruction:
+    "Click through any Apply or Start Application buttons until the main Greenhouse application form is visible",
 }
 
 export async function detectFields(
   ctx: PlatformAdapterContext
 ): Promise<DetectedField[]> {
-  await navigateToJob(ctx.stagehand, ctx.jobUrl)
-  await clickApplyButton(ctx.stagehand)
-
-  const fields = await extractFormFields(ctx.stagehand)
-
-  const hasApplyFields = fields.some((field) =>
-    /name|email|resume|phone/i.test(field.label)
-  )
-
-  if (!hasApplyFields) {
-    await ctx.stagehand.act(
-      "Click through any Apply or Start Application buttons until the main application form is visible"
-    )
-    return extractFormFields(ctx.stagehand)
-  }
-
-  return fields
+  return detectApplicationFields(ctx, GREENHOUSE_CONFIG)
 }
 
 export async function fillAndSubmit(input: FillAndSubmitInput) {
-  await navigateToJob(input.stagehand, input.jobUrl)
-  await clickApplyButton(input.stagehand)
-
-  const mappedFields = { ...input.mappedFields }
-
-  await completeApplicationForm(
-    input.stagehand,
-    input.profile,
-    input.detectedFields,
-    mappedFields
-  )
-
-  if (input.resumeFilePath) {
-    await uploadResume(input.stagehand, input.resumeFilePath)
-  }
-
-  await completeApplicationForm(
-    input.stagehand,
-    input.profile,
-    input.detectedFields,
-    mappedFields
-  )
-
-  await ensureRequiredDropdownsFilled(
-    input.stagehand,
-    input.detectedFields
-  )
-
-  await submitApplicationForm(input.stagehand)
-  await verifySubmission(input.stagehand)
+  return fillAndSubmitApplication(input, GREENHOUSE_CONFIG)
 }
