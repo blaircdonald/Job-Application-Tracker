@@ -134,7 +134,8 @@ export function ApplicationStatusList({
                   </Button>
                 ) : null}
 
-                {application.status === "failed" ? (
+                {application.status === "failed" ||
+                application.status === "queued" ? (
                   <Button
                     size="sm"
                     disabled={isPending}

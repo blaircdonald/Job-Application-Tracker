@@ -72,7 +72,12 @@ export async function startAutoApply(jobId: string): Promise<StartAutoApplyResul
       error: "You have already applied to this job.",
     }
   }
-  if (existing && isActiveApplicationStatus(existing.status)) {
+  // Stuck "queued" rows can be re-kicked; other active statuses are in-flight.
+  if (
+    existing &&
+    isActiveApplicationStatus(existing.status) &&
+    existing.status !== "queued"
+  ) {
     return {
       success: false,
       error: "An application is already in progress for this job.",
@@ -93,16 +98,36 @@ export async function startAutoApply(jobId: string): Promise<StartAutoApplyResul
       existing ??
       (await createJobApplication(supabase, userId, jobId))
 
-    await sendApplicationEvent({
-      name: "app/application.detect-fields",
-      data: {
-        applicationId: application.id,
-        userId,
-        jobId,
-        jobUrl: job.job_url,
-        platform,
-      },
-    })
+    if (existing?.status === "queued") {
+      await updateApplicationStatus(supabase, application.id, {
+        status: "queued",
+        error_message: null,
+      })
+    }
+
+    try {
+      await sendApplicationEvent({
+        name: "app/application.detect-fields",
+        data: {
+          applicationId: application.id,
+          userId,
+          jobId,
+          jobUrl: job.job_url,
+          platform,
+        },
+      })
+    } catch (sendError) {
+      const message =
+        sendError instanceof Error
+          ? sendError.message
+          : "Failed to start auto-apply."
+      // Avoid leaving orphaned Queued rows that block Browserbase forever.
+      await updateApplicationStatus(supabase, application.id, {
+        status: "failed",
+        error_message: message,
+      })
+      return { success: false, error: message }
+    }
 
     revalidatePath("/dashboard", "layout")
     revalidatePath("/dashboard/jobs")
@@ -213,22 +238,34 @@ export async function retryApplication(
   }
 
   try {
-    if (application.status === "failed") {
+    if (application.status === "failed" || application.status === "queued") {
       await updateApplicationStatus(supabase, applicationId, {
         status: "queued",
         error_message: null,
       })
 
-      await sendApplicationEvent({
-        name: "app/application.detect-fields",
-        data: {
-          applicationId,
-          userId,
-          jobId: job.id,
-          jobUrl: job.job_url,
-          platform,
-        },
-      })
+      try {
+        await sendApplicationEvent({
+          name: "app/application.detect-fields",
+          data: {
+            applicationId,
+            userId,
+            jobId: job.id,
+            jobUrl: job.job_url,
+            platform,
+          },
+        })
+      } catch (sendError) {
+        const message =
+          sendError instanceof Error
+            ? sendError.message
+            : "Failed to retry application."
+        await updateApplicationStatus(supabase, applicationId, {
+          status: "failed",
+          error_message: message,
+        })
+        return { success: false, error: message }
+      }
     } else if (
       application.status === "missing_profile_info" ||
       application.status === "ready_to_submit"
