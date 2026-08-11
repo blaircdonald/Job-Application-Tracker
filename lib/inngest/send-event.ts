@@ -1,11 +1,7 @@
 import type { ApplicationEvents } from "@/lib/inngest/client"
-import { inngest } from "@/lib/inngest/client"
+import { inngest, isInngestDevMode } from "@/lib/inngest/client"
 
 const DEV_SERVER_URL = "http://127.0.0.1:8288"
-
-function isDevMode() {
-  return process.env.INNGEST_DEV === "1" || process.env.NODE_ENV === "development"
-}
 
 async function sendViaDevServer(event: ApplicationEvents): Promise<boolean> {
   const eventKey = process.env.INNGEST_EVENT_KEY ?? "local"
@@ -32,7 +28,7 @@ export async function sendApplicationEvent(event: ApplicationEvents): Promise<vo
     await inngest.send(event)
     return
   } catch (error) {
-    if (!isDevMode()) {
+    if (!isInngestDevMode()) {
       throw error
     }
 
