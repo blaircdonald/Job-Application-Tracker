@@ -21,20 +21,28 @@ export function isUserPromptField(label: string) {
   return isSponsorshipQuestion(label) || isWorkAuthorizationQuestion(label)
 }
 
-export function isChoiceField(field: Pick<DetectedField, "label" | "type">) {
-  return (
-    field.type === "select" ||
-    field.type === "checkbox" ||
-    isYesNoQuestion(field.label)
-  )
-}
-
 export function isYesNoQuestion(label: string) {
   return (
     /\b(yes|no)\b/i.test(label) &&
     /require|authorized|eligible|sponsorship|consent|agree|willing|currently|have\s*you|are\s*you|do\s*you|will\s*you/i.test(
       label
     )
+  )
+}
+
+/** Labels that are almost always dropdowns / radio groups on ATS forms. */
+export function isLikelyDropdownLabel(label: string) {
+  return /country|state|province|region|gender|sex|pronoun|race|ethnicity|veteran|disability|hear\s*about|how\s*did\s*you|source|referral|education\s*level|degree\s*type|employment\s*(?:type|status)|job\s*type|work\s*(?:type|authorization)|visa|sponsorship|authorized\s*to\s*work|salary\s*(?:expectation|range)|notice\s*period|willing\s*to\s*relocate|remote|hybrid|preferred\s*location|timezone|availability|start\s*date|years?\s*of\s*experience|seniority|level|select\s*(?:one|an\s*option)|choose|dropdown|please\s*select/i.test(
+    label
+  )
+}
+
+export function isChoiceField(field: Pick<DetectedField, "label" | "type">) {
+  return (
+    field.type === "select" ||
+    field.type === "checkbox" ||
+    isYesNoQuestion(field.label) ||
+    (field.type === "unknown" && isLikelyDropdownLabel(field.label))
   )
 }
 
@@ -90,9 +98,20 @@ export function inferFallbackChoice(label: string): string {
   if (isYesNoQuestion(label)) {
     if (/authorized|eligible|legally|right\s*to\s*work/i.test(label)) return "Yes"
     if (/sponsorship|visa|sponsor/i.test(label)) return "No"
+    if (/relocate|willing|remote|hybrid/i.test(label)) return "Yes"
     return "No"
   }
-  return "No"
+  if (/gender|sex|pronoun|race|ethnicity|veteran|disability/i.test(label)) {
+    return "Prefer not to say"
+  }
+  if (/hear\s*about|how\s*did\s*you|source|referral/i.test(label)) {
+    return "Other"
+  }
+  if (/country/i.test(label)) return "United States"
+  if (/employment\s*(?:type|status)|job\s*type|work\s*type/i.test(label)) {
+    return "Full-time"
+  }
+  return "Prefer not to say"
 }
 
 export function buildProfileSummary(profile: FullProfile): string {

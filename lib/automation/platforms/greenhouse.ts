@@ -5,6 +5,7 @@ import type {
 } from "@/lib/automation/platforms/types"
 import {
   completeApplicationForm,
+  ensureRequiredDropdownsFilled,
   submitApplicationForm,
   verifySubmission,
 } from "@/lib/automation/fill-form"
@@ -64,6 +65,11 @@ export async function fillAndSubmit(input: FillAndSubmitInput) {
     input.profile,
     input.detectedFields,
     mappedFields
+  )
+
+  await ensureRequiredDropdownsFilled(
+    input.stagehand,
+    input.detectedFields
   )
 
   await submitApplicationForm(input.stagehand)
