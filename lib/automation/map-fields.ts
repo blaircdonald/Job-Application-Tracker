@@ -7,6 +7,9 @@ import type {
 import {
   getUserPromptProfileKey,
   inferChoiceDefault,
+  inferFallbackChoice,
+  isChoiceField,
+  isLikelyDropdownLabel,
   isUserPromptField,
 } from "@/lib/automation/field-inference"
 import { fullProfileToFormData } from "@/lib/profile/save-parsed-data"
@@ -190,6 +193,30 @@ export function mapFieldsToProfile(
         if (supplemental) {
           mapped[field.id] = supplemental
           continue
+        }
+
+        const treatAsChoice =
+          field.type === "select" ||
+          isChoiceField(field) ||
+          isLikelyDropdownLabel(field.label)
+
+        if (treatAsChoice) {
+          if (
+            /gender|sex|pronoun|race|ethnicity|veteran|disability|hear\s*about|how\s*did\s*you|source|referral/i.test(
+              field.label
+            )
+          ) {
+            mapped[field.id] = inferFallbackChoice(field.label)
+            continue
+          }
+
+          if (/country/i.test(field.label)) {
+            const location = profile.profile.location ?? ""
+            mapped[field.id] = /united states|\busa\b|\bus\b/i.test(location)
+              ? "United States"
+              : inferFallbackChoice(field.label)
+            continue
+          }
         }
 
         missing.push(buildMissingField(field, field.id, "personal"))

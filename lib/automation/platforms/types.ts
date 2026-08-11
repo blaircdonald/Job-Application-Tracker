@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import type { DetectedField } from "@/lib/types/database"
+import { isLikelyDropdownLabel } from "@/lib/automation/field-inference"
 import type { StagehandInstance } from "@/lib/automation/stagehand-client"
 import type { FullProfile } from "@/lib/types/database"
 import type { FieldMappingResult } from "@/lib/automation/map-fields"
@@ -77,18 +78,28 @@ export async function extractFormFields(
   const result = await stagehand.extract(
     [
       "Extract all visible form fields on this job application page.",
-      "Include text inputs, textareas, dropdowns/selects, radio groups, checkboxes, and file uploads.",
+      "Include text inputs, textareas, native <select> dropdowns, custom dropdowns/comboboxes/listboxes, radio groups, checkboxes, and file uploads.",
+      "Treat custom UI dropdowns (clickable fields that open an options list) as type \"select\".",
+      "Treat radio button groups as type \"select\".",
+      "Do not skip Country, State, Gender, Ethnicity, Veteran, Disability, or \"How did you hear about us\" fields.",
       "For each field include the visible label/question text, field type, and whether it appears required.",
     ].join(" "),
     detectedFieldsSchema
   )
 
-  return result.fields.map((field, index) => ({
-    id: field.id || `field-${index + 1}`,
-    label: field.label,
-    type: field.type,
-    required: field.required,
-  }))
+  return result.fields.map((field, index) => {
+    const type =
+      field.type === "unknown" && isLikelyDropdownLabel(field.label)
+        ? "select"
+        : field.type
+
+    return {
+      id: field.id || `field-${index + 1}`,
+      label: field.label,
+      type,
+      required: field.required,
+    }
+  })
 }
 
 export async function uploadResume(
